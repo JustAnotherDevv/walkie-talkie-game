@@ -1,9 +1,17 @@
-// Prop interface - interactable objects in rooms
-// Validates: Requirements 1.3, 1.4, 7.1
 export interface Prop {
-  id: string
-  interactionPrompt: string
-  revealContent: string             // text/symbol/number shown on interact
-  isMidGameRevealProp: boolean      // true for the "only one exit code" note
-  puzzleId: string | null           // which puzzle this prop contributes to
+  id: string;
+  /** Room index (0, 1, 2) — used by the registry for sanity checks. */
+  roomIndex: number;
+  /** World position [x, y, z]. */
+  position: [number, number, number];
+  /** Short label shown in the HUD interaction prompt. */
+  interactionPrompt: string;
+  /** Long body text shown in the reveal panel. */
+  revealContent: string;
+  /** Puzzle this prop contributes to (null for mid-game reveal). */
+  puzzleId: string | null;
+  /** True for the classified memo that triggers the Midpoint reveal. */
+  isMidGameRevealProp?: boolean;
+  /** Visual accent colour. */
+  color?: string;
 }

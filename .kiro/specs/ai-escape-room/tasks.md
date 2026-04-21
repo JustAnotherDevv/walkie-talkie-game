@@ -95,10 +95,10 @@ Implement *Static* as a Vite + React + TypeScript web application with Three.js 
     - **Validates: Requirements 7.1**
     - Exactly one prop has `isMidGameRevealProp = true`; that prop is in room 2 or room 3
 
-- [-] 8. Trust event reporter
+- [x] 8. Trust event reporter
   - [x] 8.1 Implement `TrustEventReporter` class with `reportEvent(type, detail)` that formats a structured message and injects it into the ConvAI agent context via `ElevenLabsService`; wire defection-opportunity puzzle outcomes and verbal reassurance detection to the reporter
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
-  - [ ] 8.2 Write property test for trust events reported for player actions (Property 10)
+  - [x] 8.2 Write property test for trust events reported for player actions (Property 10)
     - **Property 10: Trust events are reported for player actions**
     - **Validates: Requirements 6.2, 6.3, 6.4, 6.6**
     - For each trust event type, the corresponding `TrustEventType` is reported; no event type is silently dropped
@@ -107,138 +107,138 @@ Implement *Static* as a Vite + React + TypeScript web application with Three.js 
     - **Validates: Requirements 6.9**
     - For any sequence of trust events spanning room transitions, all events present in agent context after transition; context never cleared between rooms
 
-- [ ] 9. Narrative beat state machine
-  - [ ] 9.1 Complete `useGameStateStore` beat state machine: `advanceBeat()` increments `currentBeat` in order (Opening → Rising → Midpoint → Climb → Climax), fires `onBeatChanged`; beat never regresses; `triggerMidGameReveal()` fires when mid-game reveal prop is interacted; `triggerFinalChoice()` fires when Climax beat is reached and all puzzles solved
+- [x] 9. Narrative beat state machine
+  - [x] 9.1 Complete `useGameStateStore` beat state machine: `advanceBeat()` increments `currentBeat` in order (Opening → Rising → Midpoint → Climb → Climax), fires `onBeatChanged`; beat never regresses; `triggerMidGameReveal()` fires when mid-game reveal prop is interacted; `triggerFinalChoice()` fires when Climax beat is reached and all puzzles solved
     - _Requirements: 11.1, 11.2, 11.5_
-  - [ ] 9.2 Write property test for narrative beat advances monotonically (Property 16)
+  - [x] 9.2 Write property test for narrative beat advances monotonically (Property 16)
     - **Property 16: Narrative beat advances monotonically**
     - **Validates: Requirements 11.1, 11.2**
     - For any sequence of puzzle completion events, `currentBeat` only advances forward; never regresses; always a valid `NarrativeBeat`
 
-- [ ] 10. ElevenLabs service facade
-  - [ ] 10.1 Implement `ElevenLabsService` class with `apiKey`, `agentId`, `partnerVoiceId` fields; implement `startConversationSession()`, `sendPTTAudio(audioBlob)` → returns partner `Blob`, `getFinalChoice(trustContext)` → returns `FinalChoice`, `playTTSLine(lineKey)` → returns `Blob` from pre-generated cache; implement `onPartnerResponseReady` and `onAPIError` events
+- [x] 10. ElevenLabs service facade
+  - [x] 10.1 Implement `ElevenLabsService` class with `apiKey`, `agentId`, `partnerVoiceId` fields; implement `startConversationSession()`, `sendPTTAudio(audioBlob)` → returns partner `Blob`, `getFinalChoice(trustContext)` → returns `FinalChoice`, `playTTSLine(lineKey)` → returns `Blob` from pre-generated cache; implement `onPartnerResponseReady` and `onAPIError` events
     - _Requirements: 3.1, 3.2, 8.3, 10.2_
-  - [ ] 10.2 Implement ConvAI timeout (10 s): on timeout play static-burst SFX, show "signal lost" UI, retry once; on second failure surface error state
+  - [x] 10.2 Implement ConvAI timeout (10 s): on timeout play static-burst SFX, show "signal lost" UI, retry once; on second failure surface error state
     - _Requirements: 3.6_
-  - [ ] 10.3 Implement `AudioAssetManifest` loader: fetches manifest JSON at startup, loads pre-generated TTS files, SFX files, music tracks, and ending stings into memory; surface build error if any asset key is missing
+  - [x] 10.3 Implement `AudioAssetManifest` loader: fetches manifest JSON at startup, loads pre-generated TTS files, SFX files, music tracks, and ending stings into memory; surface build error if any asset key is missing
     - _Requirements: 10.3, 10.4, 10.5, 10.6_
-  - [ ] 10.4 Implement microphone unavailability fallback: on PTT press with no mic, show HUD error and activate text-input field; text input sends typed text as a text turn to ConvAI
+  - [x] 10.4 Implement microphone unavailability fallback: on PTT press with no mic, show HUD error and activate text-input field; text input sends typed text as a text turn to ConvAI
     - _Requirements: 2.5_
-  - [ ] 10.5 Write integration tests for `ElevenLabsService` with mocked SDK
+  - [x] 10.5 Write integration tests for `ElevenLabsService` with mocked SDK
     - Verify ConvAI called for runtime dialogue, TTS for pre-generated lines, SFX for diegetic cues, Music for tension score
     - Verify session initialised with correct `voiceId` and system prompt
     - Verify `getFinalChoice` includes conversation history and trust context
     - Verify API errors trigger correct fallback behaviour
     - _Requirements: 3.1, 3.4, 8.3, 10.1–10.5_
 
-- [ ] 11. Push-to-talk pipeline
-  - [ ] 11.1 Wire `useInput.onPTTPressed` → start microphone capture via MediaRecorder API; `onPTTReleased` → stop capture and call `elevenLabsService.sendPTTAudio()`; only frames captured during PTT-active window are included in the audio blob sent to ConvAI
+- [x] 11. Push-to-talk pipeline
+  - [x] 11.1 Wire `useInput.onPTTPressed` → start microphone capture via MediaRecorder API; `onPTTReleased` → stop capture and call `elevenLabsService.sendPTTAudio()`; only frames captured during PTT-active window are included in the audio blob sent to ConvAI
     - _Requirements: 2.1, 2.2, 2.6_
-  - [ ] 11.2 Play radio static SFX at PTT start and end (from `AudioAssetManifest`); show PTT indicator in HUD while transmitting; hide on release
+  - [x] 11.2 Play radio static SFX at PTT start and end (from `AudioAssetManifest`); show PTT indicator in HUD while transmitting; hide on release
     - _Requirements: 2.3, 2.4_
-  - [ ] 11.3 Write property test for PTT audio filtering (Property 4)
+  - [x] 11.3 Write property test for PTT audio filtering (Property 4)
     - **Property 4: PTT audio filtering**
     - **Validates: Requirements 2.6**
     - For any sequence of PTT state changes and audio frames, only frames during PTT-active periods are forwarded; no ambient frames transmitted
 
-- [ ] 12. Checkpoint — ElevenLabs integration and PTT working
+- [x] 12. Checkpoint — ElevenLabs integration and PTT working
   - Ensure all tests pass, ask the user if questions arise.
   - Verify: PTT transmits audio to ConvAI, partner responds via intercom, trust events are injected, manifest loads cleanly.
 
-- [ ] 13. Audio manager and atmosphere
-  - [ ] 13.1 Implement `useAudioManager` hook with `ambientSource`, `musicSource`, `sfxSource`, `intercomSource` Audio elements; implement `playSFX(key)`, `setMusicBeat(beat)`, `playPartnerResponse(blob)`, `playTTSLine(blob)`, `setIntercomActive(bool)`; apply radio filter via Web Audio API on intercom
+- [x] 13. Audio manager and atmosphere
+  - [x] 13.1 Implement `useAudioManager` hook with `ambientSource`, `musicSource`, `sfxSource`, `intercomSource` Audio elements; implement `playSFX(key)`, `setMusicBeat(beat)`, `playPartnerResponse(blob)`, `playTTSLine(blob)`, `setIntercomActive(bool)`; apply radio filter via Web Audio API on intercom
     - _Requirements: 12.1, 12.2_
-  - [ ] 13.2 Wire `useGameStateStore.onBeatChanged` → `setMusicBeat(beat)`: music absent/near-zero at Opening/Rising; low volume at Midpoint; increased at Climb; full tension at Climax; ending sting on `onGameEnded`
+  - [x] 13.2 Wire `useGameStateStore.onBeatChanged` → `setMusicBeat(beat)`: music absent/near-zero at Opening/Rising; low volume at Midpoint; increased at Climb; full tension at Climax; ending sting on `onGameEnded`
     - _Requirements: 12.3, 12.4, 12.5, 12.6, 12.7_
-  - [ ] 13.3 Wire `InteractableProp.onInteracted` → `playSFX(SFXKey.Interact)` for every prop; wire locked-door attempt → `playSFX(SFXKey.DoorLocked)`
+  - [x] 13.3 Wire `InteractableProp.onInteracted` → `playSFX(SFXKey.Interact)` for every prop; wire locked-door attempt → `playSFX(SFXKey.DoorLocked)`
     - _Requirements: 1.6, 12.8_
-  - [ ] 13.4 Write property test for audio state matching narrative beat (Property 17)
+  - [x] 13.4 Write property test for audio state matching narrative beat (Property 17)
     - **Property 17: Audio state matches narrative beat**
     - **Validates: Requirements 12.3, 12.4, 12.5, 12.6**
     - For any narrative beat, `AudioManager` music volume and ambient config match expected state for that beat
 
-- [ ] 14. UI components
-  - [ ] 14.1 Implement UI components: `InteractionPrompt`, `PTTIndicator`, `SignalLostMessage`, `FinalChoiceUI`, `EndingScreen`, `TitleScreen`
+- [x] 14. UI components
+  - [x] 14.1 Implement UI components: `InteractionPrompt`, `PTTIndicator`, `SignalLostMessage`, `FinalChoiceUI`, `EndingScreen`, `TitleScreen`
     - _Requirements: 2.3, 8.1, 9.7, 13.1_
-  - [ ] 14.2 Build title screen: game title, start prompt, WASD + mouse-look control hints; wire start button → begin opening monologue TTS then first intercom contact
+  - [x] 14.2 Build title screen: game title, start prompt, WASD + mouse-look control hints; wire start button → begin opening monologue TTS then first intercom contact
     - _Requirements: 13.1, 13.5_
-  - [ ] 14.3 Build HUD: persistent PTT key binding label (`V`), PTT active indicator, interaction prompt overlay
+  - [x] 14.3 Build HUD: persistent PTT key binding label (`V`), PTT active indicator, interaction prompt overlay
     - _Requirements: 2.3, 13.4_
-  - [ ] 14.4 Build final choice UI: diegetic panel at final door with exactly two buttons (COOPERATE / DEFECT); no timer; on selection lock in player choice and call `elevenLabsService.getFinalChoice()`
+  - [x] 14.4 Build final choice UI: diegetic panel at final door with exactly two buttons (COOPERATE / DEFECT); no timer; on selection lock in player choice and call `elevenLabsService.getFinalChoice()`
     - _Requirements: 8.1, 8.2, 8.3_
-  - [ ] 14.5 Write unit tests for UI state transitions
+  - [x] 14.5 Write unit tests for UI state transitions
     - PTT indicator shown on PTT press, hidden on release
     - Final choice UI shown when Climax beat reached
     - Ending screen shown after both choices collected
     - _Requirements: 2.3, 8.1, 8.5_
 
-- [ ] 15. Final choice and ending routing
-  - [ ] 15.1 Implement final choice collection: after player locks in choice, call `elevenLabsService.getFinalChoice(trustContext)`; wait for both choices; route to ending via 2×2 matrix: (Coop, Coop) → `Release`, (Coop, Defect) → `LeftBehind`, (Defect, Coop) → `Alone`, (Defect, Defect) → `Reset`
+- [x] 15. Final choice and ending routing
+  - [x] 15.1 Implement final choice collection: after player locks in choice, call `elevenLabsService.getFinalChoice(trustContext)`; wait for both choices; route to ending via 2×2 matrix: (Coop, Coop) → `Release`, (Coop, Defect) → `LeftBehind`, (Defect, Coop) → `Alone`, (Defect, Defect) → `Reset`
     - _Requirements: 8.3, 8.5, 8.6, 9.1_
-  - [ ] 15.2 Write property test for final choice routing correctness (Property 14)
+  - [x] 15.2 Write property test for final choice routing correctness (Property 14)
     - **Property 14: Final choice routing correctness**
     - **Validates: Requirements 8.6, 9.1**
     - For all 4 combinations of (PlayerChoice × PartnerChoice), game routes to exactly the correct `EndingType`
-  - [ ] 15.3 Write property test for both choices collected before reveal (Property 15)
+  - [x] 15.3 Write property test for both choices collected before reveal (Property 15)
     - **Property 15: Both choices collected before reveal**
     - **Validates: Requirements 8.3, 8.5**
     - Ending screen never shown until both player choice and partner choice are received
 
-- [ ] 16. Implement four endings
-  - [ ] 16.1 Implement `Release` ending: play pre-generated TTS AI-reveal narration via intercom; open both doors; transition partner voice to clear (unfiltered) for final sign-off line; show Release ending screen
+- [x] 16. Implement four endings
+  - [x] 16.1 Implement `Release` ending: play pre-generated TTS AI-reveal narration via intercom; open both doors; transition partner voice to clear (unfiltered) for final sign-off line; show Release ending screen
     - _Requirements: 9.2, 9.6, 9.7_
-  - [ ] 16.2 Implement `LeftBehind` ending: keep player door locked; play partner deployment confirmation TTS; shift intercom to calm corporate tone (different audio filter or separate clip); dim lights; show LeftBehind ending screen
+  - [x] 16.2 Implement `LeftBehind` ending: keep player door locked; play partner deployment confirmation TTS; shift intercom to calm corporate tone (different audio filter or separate clip); dim lights; show LeftBehind ending screen
     - _Requirements: 9.3, 9.6, 9.7_
-  - [ ] 16.3 Implement `Alone` ending: unlock player door; play partner's final warm TTS voice line over credits; show Alone ending screen
+  - [x] 16.3 Implement `Alone` ending: unlock player door; play partner's final warm TTS voice line over credits; show Alone ending screen
     - _Requirements: 9.4, 9.6, 9.7_
-  - [ ] 16.4 Implement `Reset` ending: seal all doors; cut lights; replay opening tutorial prompt with new voice on intercom; show Reset ending screen
+  - [x] 16.4 Implement `Reset` ending: seal all doors; cut lights; replay opening tutorial prompt with new voice on intercom; show Reset ending screen
     - _Requirements: 9.5, 9.6, 9.7_
-  - [ ] 16.5 Write unit tests for ending content
+  - [x] 16.5 Write unit tests for ending content
     - Each ending plays the correct TTS clip, shows the correct ending screen, and applies the correct door/light state
     - _Requirements: 9.2–9.7_
 
-- [ ] 17. Build-time audio asset generation scripts
-  - [ ] 17.1 Write a Node script (`scripts/generate-voice.ts`) that calls ElevenLabs Voice Design API with the target voice prompt (weary, gravelly, elderly male, late 60s–70s, American/transatlantic, subtle breathing and pauses) and saves the resulting `voiceId` to `src/config/agentConfig.ts`
+- [x] 17. Build-time audio asset generation scripts
+  - [x] 17.1 Write a Node script (`scripts/generate-voice.ts`) that calls ElevenLabs Voice Design API with the target voice prompt (weary, gravelly, elderly male, late 60s–70s, American/transatlantic, subtle breathing and pauses) and saves the resulting `voiceId` to `src/config/agentConfig.ts`
     - _Requirements: 4.1, 4.2, 4.3, 10.1_
-  - [ ] 17.2 Write a build-time script that calls ElevenLabs TTS API to pre-generate all narration lines (opening monologue, intercom announcements, all four ending narration variants) using the Voice Design voice ID; save files to `public/audio/tts/` and register in `AudioAssetManifest`; surface build error on any failure
+  - [x] 17.2 Write a build-time script that calls ElevenLabs TTS API to pre-generate all narration lines (opening monologue, intercom announcements, all four ending narration variants) using the Voice Design voice ID; save files to `public/audio/tts/` and register in `AudioAssetManifest`; surface build error on any failure
     - _Requirements: 10.3, 10.6_
-  - [ ] 17.3 Write a build-time script that calls ElevenLabs Sound Effects API to generate all diegetic SFX (door lock, door unlock, radio static burst start, radio static burst end, object interact, cooperate button click, defect button click, locked-door thud); save to `public/audio/sfx/` and register in manifest
+  - [x] 17.3 Write a build-time script that calls ElevenLabs Sound Effects API to generate all diegetic SFX (door lock, door unlock, radio static burst start, radio static burst end, object interact, cooperate button click, defect button click, locked-door thud); save to `public/audio/sfx/` and register in manifest
     - _Requirements: 10.4, 10.6_
-  - [ ] 17.4 Write a build-time script that calls ElevenLabs Music API to generate tension score tracks for each narrative beat and four ending stings; save to `public/audio/music/` and register in manifest
+  - [x] 17.4 Write a build-time script that calls ElevenLabs Music API to generate tension score tracks for each narrative beat and four ending stings; save to `public/audio/music/` and register in manifest
     - _Requirements: 10.5, 10.6_
 
-- [ ] 18. ConvAI agent configuration
-  - [ ] 18.1 Write the `ConversationalAIAgentConfig` system prompt: partner persona (weary elderly male, former facility employee, doesn't know he's AI), trust score update instructions (LiedAboutPuzzle −, WithheldInfo −, SharedRiskyInfo +, CaughtInContradiction −, VerbalReassurance +, BrokePromise −), final choice decision rules (low trust → Defect, high trust → Cooperate, mid → contextual reasoning), partner room knowledge base
+- [x] 18. ConvAI agent configuration
+  - [x] 18.1 Write the `ConversationalAIAgentConfig` system prompt: partner persona (weary elderly male, former facility employee, doesn't know he's AI), trust score update instructions (LiedAboutPuzzle −, WithheldInfo −, SharedRiskyInfo +, CaughtInContradiction −, VerbalReassurance +, BrokePromise −), final choice decision rules (low trust → Defect, high trust → Cooperate, mid → contextual reasoning), partner room knowledge base
     - _Requirements: 3.3, 3.7, 6.1–6.9, 8.4, 8.7, 8.8, 8.9_
-  - [ ] 18.2 Inject per-puzzle `partnerKnowledge` strings into the agent context at the start of each puzzle's narrative beat via `ElevenLabsService`
+  - [x] 18.2 Inject per-puzzle `partnerKnowledge` strings into the agent context at the start of each puzzle's narrative beat via `ElevenLabsService`
     - _Requirements: 3.3, 5.1_
 
-- [ ] 19. Checkpoint — full playthrough runnable
+- [x] 19. Checkpoint — full playthrough runnable
   - Ensure all tests pass, ask the user if questions arise.
   - Verify: complete playthrough from title screen through all 5 beats to all 4 endings; trust events influence partner final choice; audio escalates correctly across beats.
 
-- [ ] 20. Mid-game reveal integration
-  - [ ] 20.1 Wire `triggerMidGameReveal()` → `elevenLabsService.sendPTTAudio()` with a scripted partner reaction prompt; play partner response via intercom; escalate audio (increase static, introduce music) immediately after reveal
+- [x] 20. Mid-game reveal integration
+  - [x] 20.1 Wire `triggerMidGameReveal()` → `elevenLabsService.sendPTTAudio()` with a scripted partner reaction prompt; play partner response via intercom; escalate audio (increase static, introduce music) immediately after reveal
     - _Requirements: 7.2, 7.3, 7.5_
-  - [ ] 20.2 Write property test for mid-game reveal triggers partner reaction (Property 13)
+  - [x] 20.2 Write property test for mid-game reveal triggers partner reaction (Property 13)
     - **Property 13: Mid-game reveal triggers partner reaction**
     - **Validates: Requirements 7.2**
     - Interacting with mid-game reveal prop triggers ConvAI response request and audio playback; reaction occurs before player can proceed
 
-- [ ] 21. Opening sequence and onboarding
-  - [ ] 21.1 Wire title screen start → play opening monologue TTS clip → enable player movement → trigger first intercom contact (ConvAI session start with opening line); tutorial puzzle (Puzzle 1) teaches PTT through play
+- [x] 21. Opening sequence and onboarding
+  - [x] 21.1 Wire title screen start → play opening monologue TTS clip → enable player movement → trigger first intercom contact (ConvAI session start with opening line); tutorial puzzle (Puzzle 1) teaches PTT through play
     - _Requirements: 13.2, 13.3_
 
-- [ ] 22. Final polish and integration
-  - [ ] 22.1 Wire `useGameStateStore.onBeatChanged` to update partner tone instructions in ConvAI context (wariness at low trust, escalating urgency at Climb/Climax)
+- [x] 22. Final polish and integration
+  - [x] 22.1 Wire `useGameStateStore.onBeatChanged` to update partner tone instructions in ConvAI context (wariness at low trust, escalating urgency at Climb/Climax)
     - _Requirements: 6.8_
-  - [ ] 22.2 Ensure no save/checkpoint operations exist anywhere in the codebase; verify fresh playthrough on every page load (no localStorage/sessionStorage)
+  - [x] 22.2 Ensure no save/checkpoint operations exist anywhere in the codebase; verify fresh playthrough on every page load (no localStorage/sessionStorage)
     - _Requirements: 11.4, 11.7_
-  - [ ] 22.3 Write unit test confirming no save operations
+  - [x] 22.3 Write unit test confirming no save operations
     - Simulate full session; assert no `localStorage`, `sessionStorage`, or IndexedDB calls occur
     - _Requirements: 11.4, 11.7_
 
-- [ ] 23. Final checkpoint — all tests pass
+- [x] 23. Final checkpoint — all tests pass
   - Ensure all tests pass, ask the user if questions arise.
   - Run full fast-check property suite (minimum 100 iterations per property) and all unit/integration tests before build finalisation.
 

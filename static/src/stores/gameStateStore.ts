@@ -1,164 +1,126 @@
 import { create } from 'zustand';
-import { NarrativeBeat, FinalChoice, EndingType } from '../types';
+import { BEAT_ORDER, NarrativeBeat } from '../types/narrative';
+import { FinalChoice } from '../types/choices';
+import { EndingType } from '../types/endings';
 
-// Event emitter type for store events
-type EventCallback<T = void> = (data: T) => void;
-
-interface GameStateStore {
-  // State
+/**
+ * Minimal game state store, grown incrementally as rounds add features.
+ * Round 4 adds reveal-panel state, solved-puzzle tracking, and an
+ * interaction-prompt string the HUD reads.
+ */
+export interface GameState {
+  hasStarted: boolean;
   currentBeat: NarrativeBeat;
   solvedPuzzleCount: number;
+  totalPuzzles: number;
+  solvedPuzzles: Set<string>;
   playerFinalChoice: FinalChoice;
   partnerFinalChoice: FinalChoice;
-  midGameRevealTriggered: boolean;
   gameEnded: boolean;
   endingType: EndingType | null;
+  midGameRevealTriggered: boolean;
+
+  /** Prompt shown in the HUD when a prop is within interaction range. */
+  interactionPrompt: string | null;
+  /** Body text of the currently-open reveal panel (null = closed). */
+  revealedContent: string | null;
+  /** Puzzle id associated with the currently-open reveal panel. */
+  activePuzzleId: string | null;
 
   // Actions
+  startGame: () => void;
   advanceBeat: () => void;
   incrementSolvedPuzzles: () => void;
+  markPuzzleSolved: (puzzleId: string) => void;
   triggerMidGameReveal: () => void;
-  triggerFinalChoice: () => void;
+  setInteractionPrompt: (prompt: string | null) => void;
+  openReveal: (content: string, puzzleId: string | null) => void;
+  closeReveal: () => void;
   setPlayerFinalChoice: (choice: FinalChoice) => void;
   setPartnerFinalChoice: (choice: FinalChoice) => void;
   resolveEnding: () => void;
   resetGame: () => void;
-
-  // Event subscriptions
-  onBeatChanged: Set<EventCallback<NarrativeBeat>>;
-  onMidGameReveal: Set<EventCallback<void>>;
-  onFinalChoiceTriggered: Set<EventCallback<void>>;
-  onGameEnded: Set<EventCallback<EndingType>>;
-
-  // Event subscription methods
-  subscribeToBeatChange: (callback: EventCallback<NarrativeBeat>) => () => void;
-  subscribeToMidGameReveal: (callback: EventCallback<void>) => () => void;
-  subscribeToFinalChoice: (callback: EventCallback<void>) => () => void;
-  subscribeToGameEnd: (callback: EventCallback<EndingType>) => () => void;
 }
 
-// Beat order for monotonic advancement
-const BEAT_ORDER: NarrativeBeat[] = [
-  NarrativeBeat.Opening,
-  NarrativeBeat.Rising,
-  NarrativeBeat.Midpoint,
-  NarrativeBeat.Climb,
-  NarrativeBeat.Climax,
-];
-
-export const useGameStateStore = create<GameStateStore>((set, get) => ({
-  // Initial state
+const initialState = {
+  hasStarted: false,
   currentBeat: NarrativeBeat.Opening,
   solvedPuzzleCount: 0,
+  totalPuzzles: 4,
+  solvedPuzzles: new Set<string>(),
   playerFinalChoice: FinalChoice.Pending,
   partnerFinalChoice: FinalChoice.Pending,
-  midGameRevealTriggered: false,
   gameEnded: false,
-  endingType: null,
+  endingType: null as EndingType | null,
+  midGameRevealTriggered: false,
+  interactionPrompt: null as string | null,
+  revealedContent: null as string | null,
+  activePuzzleId: null as string | null,
+};
 
-  // Event subscription sets
-  onBeatChanged: new Set<EventCallback<NarrativeBeat>>(),
-  onMidGameReveal: new Set<EventCallback<void>>(),
-  onFinalChoiceTriggered: new Set<EventCallback<void>>(),
-  onGameEnded: new Set<EventCallback<EndingType>>(),
+export const useGameStateStore = create<GameState>((set, get) => ({
+  ...initialState,
 
-  // Subscription methods
-  subscribeToBeatChange: (callback) => {
-    const store = get();
-    store.onBeatChanged.add(callback);
-    return () => store.onBeatChanged.delete(callback);
-  },
+  startGame: () => set({ hasStarted: true }),
 
-  subscribeToMidGameReveal: (callback) => {
-    const store = get();
-    store.onMidGameReveal.add(callback);
-    return () => store.onMidGameReveal.delete(callback);
-  },
-
-  subscribeToFinalChoice: (callback) => {
-    const store = get();
-    store.onFinalChoiceTriggered.add(callback);
-    return () => store.onFinalChoiceTriggered.delete(callback);
-  },
-
-  subscribeToGameEnd: (callback) => {
-    const store = get();
-    store.onGameEnded.add(callback);
-    return () => store.onGameEnded.delete(callback);
-  },
-
-  // Actions
   advanceBeat: () => {
-    const state = get();
-    const currentIndex = BEAT_ORDER.indexOf(state.currentBeat);
-    
-    // Only advance if not at climax
-    if (currentIndex < BEAT_ORDER.length - 1) {
-      const newBeat = BEAT_ORDER[currentIndex + 1];
-      set({ currentBeat: newBeat });
-      
-      // Notify subscribers
-      state.onBeatChanged.forEach(cb => cb(newBeat));
+    const idx = BEAT_ORDER.indexOf(get().currentBeat);
+    if (idx < BEAT_ORDER.length - 1) {
+      set({ currentBeat: BEAT_ORDER[idx + 1] });
     }
   },
 
-  incrementSolvedPuzzles: () => {
-    set(state => ({ solvedPuzzleCount: state.solvedPuzzleCount + 1 }));
+  incrementSolvedPuzzles: () =>
+    set((s) => ({ solvedPuzzleCount: s.solvedPuzzleCount + 1 })),
+
+  markPuzzleSolved: (puzzleId) =>
+    set((s) => {
+      if (s.solvedPuzzles.has(puzzleId)) return s;
+      const next = new Set(s.solvedPuzzles);
+      next.add(puzzleId);
+      return {
+        solvedPuzzles: next,
+        solvedPuzzleCount: next.size,
+      };
+    }),
+
+  triggerMidGameReveal: () =>
+    set((s) => (s.midGameRevealTriggered ? s : { midGameRevealTriggered: true })),
+
+  setInteractionPrompt: (prompt) => {
+    // Skip the write if unchanged — playerController polls this every frame.
+    if (get().interactionPrompt === prompt) return;
+    set({ interactionPrompt: prompt });
   },
 
-  triggerMidGameReveal: () => {
-    const state = get();
-    if (!state.midGameRevealTriggered) {
-      set({ midGameRevealTriggered: true });
-      state.onMidGameReveal.forEach(cb => cb());
-    }
-  },
+  openReveal: (content, puzzleId) =>
+    set({ revealedContent: content, activePuzzleId: puzzleId }),
 
-  triggerFinalChoice: () => {
-    const state = get();
-    if (state.currentBeat === NarrativeBeat.Climax && !state.gameEnded) {
-      state.onFinalChoiceTriggered.forEach(cb => cb());
-    }
-  },
+  closeReveal: () => set({ revealedContent: null, activePuzzleId: null }),
 
-  setPlayerFinalChoice: (choice: FinalChoice) => {
-    set({ playerFinalChoice: choice });
-  },
-
-  setPartnerFinalChoice: (choice: FinalChoice) => {
-    set({ partnerFinalChoice: choice });
-  },
+  setPlayerFinalChoice: (choice) => set({ playerFinalChoice: choice }),
+  setPartnerFinalChoice: (choice) => set({ partnerFinalChoice: choice }),
 
   resolveEnding: () => {
-    const state = get();
-    const { playerFinalChoice, partnerFinalChoice } = state;
+    const { playerFinalChoice: p, partnerFinalChoice: q } = get();
+    if (p === FinalChoice.Pending || q === FinalChoice.Pending) return;
 
-    // Determine ending based on 2x2 matrix
     let endingType: EndingType;
-    
-    if (playerFinalChoice === FinalChoice.Cooperate && partnerFinalChoice === FinalChoice.Cooperate) {
+    if (p === FinalChoice.Cooperate && q === FinalChoice.Cooperate) {
       endingType = EndingType.Release;
-    } else if (playerFinalChoice === FinalChoice.Cooperate && partnerFinalChoice === FinalChoice.Defect) {
+    } else if (p === FinalChoice.Cooperate && q === FinalChoice.Defect) {
       endingType = EndingType.LeftBehind;
-    } else if (playerFinalChoice === FinalChoice.Defect && partnerFinalChoice === FinalChoice.Cooperate) {
+    } else if (p === FinalChoice.Defect && q === FinalChoice.Cooperate) {
       endingType = EndingType.Alone;
     } else {
       endingType = EndingType.Reset;
     }
-
     set({ gameEnded: true, endingType });
-    state.onGameEnded.forEach(cb => cb(endingType));
   },
 
-  resetGame: () => {
+  resetGame: () =>
     set({
-      currentBeat: NarrativeBeat.Opening,
-      solvedPuzzleCount: 0,
-      playerFinalChoice: FinalChoice.Pending,
-      partnerFinalChoice: FinalChoice.Pending,
-      midGameRevealTriggered: false,
-      gameEnded: false,
-      endingType: null,
-    });
-  },
+      ...initialState,
+      solvedPuzzles: new Set<string>(),
+    }),
 }));

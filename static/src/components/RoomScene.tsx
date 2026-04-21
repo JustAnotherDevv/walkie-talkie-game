@@ -1,195 +1,199 @@
-import { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
-import type { Room } from '../types/room';
-import { useRoomManager } from '../hooks/useRoomManager';
+import { useMemo } from 'react';
 
-// Room dimensions
 const ROOM_WIDTH = 10;
 const ROOM_DEPTH = 12;
 const ROOM_HEIGHT = 4;
-const DOOR_WIDTH = 2;
+const DOOR_WIDTH = 2.4;
 const DOOR_HEIGHT = 3;
+const WALL_THICKNESS = 0.2;
+const GAP = 2; // open corridor length between rooms
+const ROOM_SPACING = ROOM_DEPTH + GAP;
 
-// Colors for room materials
-const WALL_COLOR = '#3a3a3a';
-const FLOOR_COLOR = '#2a2a2a';
-const CEILING_COLOR = '#4a4a4a';
-const DOOR_LOCKED_COLOR = '#8b0000';
-const DOOR_UNLOCKED_COLOR = '#228b22';
+const WALL_COLOR = '#4a4d5b';
+const FLOOR_COLOR = '#2a2c35';
+const CEILING_COLOR = '#32343e';
+
+function Wall({
+  position,
+  size,
+  color = WALL_COLOR,
+}: {
+  position: [number, number, number];
+  size: [number, number, number];
+  color?: string;
+}) {
+  return (
+    <mesh position={position} receiveShadow castShadow>
+      <boxGeometry args={size} />
+      <meshStandardMaterial color={color} roughness={0.7} metalness={0.1} />
+    </mesh>
+  );
+}
 
 /**
- * PlaceholderRoom - A simple room geometry with walls, floor, ceiling, and a door
- * This is a placeholder until the Factory Modular Kit GLB is loaded
- * Validates: Requirements 1.2
+ * A single room. Has a floor, ceiling, two full side walls, a back wall,
+ * and a front wall with a door opening cut out. The opening faces +Z.
  */
-function PlaceholderRoom({ 
-  room, 
-  position, 
-  isDoorUnlocked,
-  onDoorInteract 
-}: { 
-  room: Room; 
-  position: [number, number, number];
-  isDoorUnlocked: boolean;
-  onDoorInteract: () => void;
+function Room({
+  index,
+  accent,
+  hasDoorFront,
+  hasDoorBack,
+}: {
+  index: number;
+  accent: string;
+  hasDoorFront: boolean;
+  hasDoorBack: boolean;
 }) {
-  const doorRef = useRef<THREE.Mesh>(null);
-  
-  // Door color based on lock state
-  const doorColor = isDoorUnlocked ? DOOR_UNLOCKED_COLOR : DOOR_LOCKED_COLOR;
-  
-  // Create room geometries
-  const wallGeometry = useMemo(() => new THREE.BoxGeometry(ROOM_WIDTH, ROOM_HEIGHT, 0.2), []);
-  const floorGeometry = useMemo(() => new THREE.BoxGeometry(ROOM_WIDTH, 0.2, ROOM_DEPTH), []);
-  const doorGeometry = useMemo(() => new THREE.BoxGeometry(DOOR_WIDTH, DOOR_HEIGHT, 0.3), []);
-  
+  const z = index * ROOM_SPACING;
+
   return (
-    <group position={position}>
+    <group position={[0, 0, z]}>
       {/* Floor */}
-      <mesh geometry={floorGeometry} position={[0, -ROOM_HEIGHT / 2, 0]}>
-        <meshStandardMaterial color={FLOOR_COLOR} />
-      </mesh>
-      
+      <Wall
+        position={[0, -ROOM_HEIGHT / 2, 0]}
+        size={[ROOM_WIDTH, WALL_THICKNESS, ROOM_DEPTH]}
+        color={FLOOR_COLOR}
+      />
       {/* Ceiling */}
-      <mesh geometry={floorGeometry} position={[0, ROOM_HEIGHT / 2, 0]}>
-        <meshStandardMaterial color={CEILING_COLOR} />
-      </mesh>
-      
-      {/* Back wall */}
-      <mesh geometry={wallGeometry} position={[0, 0, -ROOM_DEPTH / 2]}>
-        <meshStandardMaterial color={WALL_COLOR} />
-      </mesh>
-      
+      <Wall
+        position={[0, ROOM_HEIGHT / 2, 0]}
+        size={[ROOM_WIDTH, WALL_THICKNESS, ROOM_DEPTH]}
+        color={CEILING_COLOR}
+      />
       {/* Left wall */}
-      <mesh 
-        geometry={wallGeometry} 
+      <Wall
         position={[-ROOM_WIDTH / 2, 0, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-      >
-        <meshStandardMaterial color={WALL_COLOR} />
-      </mesh>
-      
+        size={[WALL_THICKNESS, ROOM_HEIGHT, ROOM_DEPTH]}
+      />
       {/* Right wall */}
-      <mesh 
-        geometry={wallGeometry} 
+      <Wall
         position={[ROOM_WIDTH / 2, 0, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-      >
-        <meshStandardMaterial color={WALL_COLOR} />
-      </mesh>
-      
-      {/* Front wall with door opening - left part */}
-      <mesh 
-        position={[-ROOM_WIDTH / 4 - DOOR_WIDTH / 4, 0, ROOM_DEPTH / 2]}
-        geometry={new THREE.BoxGeometry(ROOM_WIDTH / 2 - DOOR_WIDTH / 2, ROOM_HEIGHT, 0.2)}
-      >
-        <meshStandardMaterial color={WALL_COLOR} />
-      </mesh>
-      
-      {/* Front wall with door opening - right part */}
-      <mesh 
-        position={[ROOM_WIDTH / 4 + DOOR_WIDTH / 4, 0, ROOM_DEPTH / 2]}
-        geometry={new THREE.BoxGeometry(ROOM_WIDTH / 2 - DOOR_WIDTH / 2, ROOM_HEIGHT, 0.2)}
-      >
-        <meshStandardMaterial color={WALL_COLOR} />
-      </mesh>
-      
-      {/* Front wall with door opening - top part */}
-      <mesh 
-        position={[0, (ROOM_HEIGHT - DOOR_HEIGHT) / 2, ROOM_DEPTH / 2]}
-        geometry={new THREE.BoxGeometry(DOOR_WIDTH, ROOM_HEIGHT - DOOR_HEIGHT, 0.2)}
-      >
-        <meshStandardMaterial color={WALL_COLOR} />
-      </mesh>
-      
-      {/* Door */}
-      <mesh 
-        ref={doorRef}
-        geometry={doorGeometry}
-        position={[0, -ROOM_HEIGHT / 2 + DOOR_HEIGHT / 2, ROOM_DEPTH / 2]}
-        onClick={onDoorInteract}
-      >
-        <meshStandardMaterial color={doorColor} />
-      </mesh>
-      
-      {/* Room label */}
-      <mesh position={[0, ROOM_HEIGHT / 2 - 0.5, -ROOM_DEPTH / 2 + 0.2]}>
-        <planeGeometry args={[3, 0.5]} />
-        <meshBasicMaterial color="#ffffff" />
+        size={[WALL_THICKNESS, ROOM_HEIGHT, ROOM_DEPTH]}
+      />
+
+      {/* Back wall (-Z): either solid or with door opening */}
+      {hasDoorBack ? (
+        <>
+          <Wall
+            position={[
+              -(ROOM_WIDTH / 4 + DOOR_WIDTH / 4),
+              0,
+              -ROOM_DEPTH / 2,
+            ]}
+            size={[ROOM_WIDTH / 2 - DOOR_WIDTH / 2, ROOM_HEIGHT, WALL_THICKNESS]}
+          />
+          <Wall
+            position={[
+              ROOM_WIDTH / 4 + DOOR_WIDTH / 4,
+              0,
+              -ROOM_DEPTH / 2,
+            ]}
+            size={[ROOM_WIDTH / 2 - DOOR_WIDTH / 2, ROOM_HEIGHT, WALL_THICKNESS]}
+          />
+          <Wall
+            position={[0, (ROOM_HEIGHT - DOOR_HEIGHT) / 2 + DOOR_HEIGHT / 2, -ROOM_DEPTH / 2]}
+            size={[DOOR_WIDTH, ROOM_HEIGHT - DOOR_HEIGHT, WALL_THICKNESS]}
+          />
+        </>
+      ) : (
+        <Wall
+          position={[0, 0, -ROOM_DEPTH / 2]}
+          size={[ROOM_WIDTH, ROOM_HEIGHT, WALL_THICKNESS]}
+        />
+      )}
+
+      {/* Front wall (+Z): either solid or with door opening */}
+      {hasDoorFront ? (
+        <>
+          <Wall
+            position={[
+              -(ROOM_WIDTH / 4 + DOOR_WIDTH / 4),
+              0,
+              ROOM_DEPTH / 2,
+            ]}
+            size={[ROOM_WIDTH / 2 - DOOR_WIDTH / 2, ROOM_HEIGHT, WALL_THICKNESS]}
+          />
+          <Wall
+            position={[
+              ROOM_WIDTH / 4 + DOOR_WIDTH / 4,
+              0,
+              ROOM_DEPTH / 2,
+            ]}
+            size={[ROOM_WIDTH / 2 - DOOR_WIDTH / 2, ROOM_HEIGHT, WALL_THICKNESS]}
+          />
+          <Wall
+            position={[0, (ROOM_HEIGHT - DOOR_HEIGHT) / 2 + DOOR_HEIGHT / 2, ROOM_DEPTH / 2]}
+            size={[DOOR_WIDTH, ROOM_HEIGHT - DOOR_HEIGHT, WALL_THICKNESS]}
+          />
+        </>
+      ) : (
+        <Wall
+          position={[0, 0, ROOM_DEPTH / 2]}
+          size={[ROOM_WIDTH, ROOM_HEIGHT, WALL_THICKNESS]}
+        />
+      )}
+
+      {/* Room accent light marker — small emissive cube in the centre */}
+      <mesh position={[0, -ROOM_HEIGHT / 2 + 0.4, 0]}>
+        <boxGeometry args={[0.4, 0.05, 0.4]} />
+        <meshStandardMaterial
+          color={accent}
+          emissive={accent}
+          emissiveIntensity={1.2}
+        />
       </mesh>
     </group>
   );
 }
 
 /**
- * RoomScene - Manages all rooms in the game
- * Validates: Requirements 1.2, 1.5, 1.6, 11.3
- * 
- * Assembles 3 connected rooms with doors at each transition.
- * Doors are gated by puzzles - locked until puzzle is solved.
+ * 3 rooms connected linearly along +Z. Room 0 starts at z=0 (where the
+ * camera spawns), rooms 1 and 2 follow. Doorways are always open in this
+ * round; gating logic returns in a later round.
  */
 export function RoomScene() {
-  const { rooms, tryUnlockDoor, isDoorUnlocked } = useRoomManager();
-  
-  // Handle door interaction
-  const handleDoorInteract = (roomIndex: number) => {
-    const unlocked = tryUnlockDoor(roomIndex);
-    // If not unlocked, the onDoorAttemptedWhileLocked event will fire
-    // Audio for locked door should be handled by the audio manager
-  };
-  
-  // Calculate room positions (rooms are connected in a line)
-  const getRoomPosition = (index: number): [number, number, number] => {
-    // Each room is positioned after the previous one
-    // Add spacing for the door/transition area
-    const spacing = ROOM_DEPTH + 2; // 2 units for door area
-    return [0, 0, index * spacing];
-  };
-  
+  // Recreate room geometries only once.
+  const rooms = useMemo(
+    () => [
+      { accent: '#38bdf8', hasDoorFront: true, hasDoorBack: false },
+      { accent: '#fbbf24', hasDoorFront: true, hasDoorBack: true },
+      { accent: '#ef4444', hasDoorFront: false, hasDoorBack: true },
+    ],
+    [],
+  );
+
   return (
     <group>
-      {rooms.map((room, index) => (
-        <PlaceholderRoom
-          key={room.id}
-          room={room}
-          position={getRoomPosition(index)}
-          isDoorUnlocked={isDoorUnlocked(index)}
-          onDoorInteract={() => handleDoorInteract(index)}
+      {rooms.map((r, i) => (
+        <Room
+          key={i}
+          index={i}
+          accent={r.accent}
+          hasDoorFront={r.hasDoorFront}
+          hasDoorBack={r.hasDoorBack}
         />
       ))}
+
+      {/* Point lights sit at the centre of each room (brighter + wider). */}
+      {rooms.map((r, i) => (
+        <pointLight
+          key={`light-${i}`}
+          position={[0, 1.2, i * ROOM_SPACING]}
+          intensity={1.4}
+          distance={16}
+          color={r.accent}
+          castShadow
+        />
+      ))}
+
+      {/* Global ambient — raised so walls and floor read clearly. */}
+      <ambientLight intensity={0.7} />
+      {/* Hemisphere light adds a soft top-down gradient for depth. */}
+      <hemisphereLight args={['#cbd5e1', '#1a1b22', 0.5]} />
+
+      {/* Fog hides distant walls for atmosphere. */}
+      <fog attach="fog" args={['#05050a', 10, 60]} />
     </group>
   );
 }
-
-/**
- * Create initial rooms for the game
- * This function creates the default room configuration
- */
-export function createInitialRooms(): Room[] {
-  return [
-    {
-      id: 'room_1',
-      displayName: 'Security Office',
-      props: [],
-      gatingPuzzleId: 'puzzle_01_symbol_correlation',
-      isUnlocked: true, // First room is always unlocked
-    },
-    {
-      id: 'room_2',
-      displayName: 'Maintenance Bay',
-      props: [],
-      gatingPuzzleId: 'puzzle_02_split_combination',
-      isUnlocked: false,
-    },
-    {
-      id: 'room_3',
-      displayName: 'Control Center',
-      props: [],
-      gatingPuzzleId: 'puzzle_03_descriptive_match',
-      isUnlocked: false,
-    },
-  ];
-}
-
-export { ROOM_WIDTH, ROOM_DEPTH, ROOM_HEIGHT, DOOR_WIDTH, DOOR_HEIGHT };

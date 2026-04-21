@@ -1,119 +1,87 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Vector3 } from 'three';
-import { IInteractable, Prop } from '../types';
+import { Vector3, type Mesh } from 'three';
+import type { Prop } from '../types/prop';
+import { interactableRegistry } from '../services/interactableRegistry';
 import { useGameStateStore } from '../stores/gameStateStore';
+import { audioBus } from '../services/audioBus';
+import { SFXKey } from '../types/audio';
 
-// Default interaction range (must match PlayerController)
-const INTERACTION_RANGE = 3;
-
-interface InteractablePropProps extends Prop {
-  position: [number, number, number];
-  onInteracted?: () => void;
-}
+interface InteractablePropProps extends Prop {}
 
 /**
- * InteractableProp - R3F component for interactable objects
- * Validates: Requirements 1.3, 1.4
- * 
- * Features:
- * - Stores revealContent, isMidGameRevealProp, puzzleId
- * - interact() reveals content and fires event
- * - isInteractable returns true when player is within range
+ * World-space glowing cube you can approach and press E to inspect.
+ * Registers itself with the interactableRegistry so PlayerController can
+ * find it each frame.
  */
 export function InteractableProp({
   id,
   position,
   interactionPrompt,
   revealContent,
-  isMidGameRevealProp,
   puzzleId,
-  onInteracted,
-}: InteractablePropProps): null {
-  // State
-  const isRevealed = useRef(false);
-  const meshRef = useRef<THREE.Mesh>(null);
-  
-  // Get game state store actions
-  const triggerMidGameReveal = useGameStateStore(state => state.triggerMidGameReveal);
-  
-  // Track player position for range check
-  const playerInRange = useRef(false);
+  isMidGameRevealProp,
+  color,
+}: InteractablePropProps) {
+  const meshRef = useRef<Mesh>(null);
+  const openReveal = useGameStateStore((s) => s.openReveal);
+  const triggerMidGameReveal = useGameStateStore((s) => s.triggerMidGameReveal);
+  const solvedPuzzles = useGameStateStore((s) => s.solvedPuzzles);
 
-  // Create the IInteractable implementation
-  const interactable: IInteractable = useRef({
-    interact: () => {
-      if (isRevealed.current) return;
-      
-      // Reveal the content
-      isRevealed.current = true;
-      
-      // Fire the onInteracted callback
-      onInteracted?.();
-      
-      // If this is the mid-game reveal prop, trigger the event
-      if (isMidGameRevealProp) {
-        triggerMidGameReveal();
-      }
-      
-      console.log(`[InteractableProp] ${id} interacted. Content: ${revealContent}`);
-    },
-    
-    getPromptText: () => interactionPrompt,
-    
-    get isInteractable() {
-      return playerInRange.current && !isRevealed.current;
-    },
-    
-    position: {
-      x: position[0],
-      y: position[1],
-      z: position[2],
-    },
-  }).current;
+  const isSolved =
+    puzzleId != null ? solvedPuzzles.has(puzzleId) : false;
 
-  // Check if player is in range each frame
-  useFrame(({ camera }) => {
-    if (!camera) return;
-    
-    const propPosition = new Vector3(position[0], position[1], position[2]);
-    const playerPosition = camera.position.clone();
-    const distance = playerPosition.distanceTo(propPosition);
-    
-    playerInRange.current = distance <= INTERACTION_RANGE;
+  const worldPos = useMemo(
+    () => new Vector3(position[0], position[1], position[2]),
+    [position],
+  );
+
+  // Register / unregister with the shared interactable registry.
+  useEffect(() => {
+    interactableRegistry.register({
+      id,
+      position: worldPos,
+      prompt: interactionPrompt,
+      onInteract: () => {
+        audioBus.playSFX?.(SFXKey.ObjectInteract);
+        openReveal(revealContent, puzzleId);
+        if (isMidGameRevealProp) {
+          triggerMidGameReveal();
+          audioBus.playSFX?.(SFXKey.StaticBurst);
+        }
+      },
+      isRevealed: () => isSolved,
+    });
+    return () => interactableRegistry.unregister(id);
+  }, [
+    id,
+    worldPos,
+    interactionPrompt,
+    revealContent,
+    puzzleId,
+    isMidGameRevealProp,
+    isSolved,
+    openReveal,
+    triggerMidGameReveal,
+  ]);
+
+  // Gentle vertical bob + rotation so they read as interactable.
+  useFrame((_, dt) => {
+    if (!meshRef.current) return;
+    meshRef.current.rotation.y += dt * 0.6;
+    meshRef.current.position.y = position[1] + Math.sin(performance.now() * 0.002) * 0.06;
   });
 
-  // Register with the global player controller
-  useEffect(() => {
-    const playerController = (window as unknown as { 
-      playerController?: { 
-        registerInteractable: (obj: IInteractable) => void;
-        unregisterInteractable: (obj: IInteractable) => void;
-      } 
-    }).playerController;
-
-    if (playerController) {
-      playerController.registerInteractable(interactable);
-      
-      return () => {
-        playerController.unregisterInteractable(interactable);
-      };
-    }
-  }, [interactable]);
-
-  // This component doesn't render anything - the visual representation
-  // should be handled by a separate mesh component or child component
-  return null;
-}
-
-/**
- * Helper function to check if a prop is interactable based on player position
- */
-export function isPropInteractable(
-  propPosition: [number, number, number],
-  playerPosition: Vector3,
-  range: number = INTERACTION_RANGE
-): boolean {
-  const propPos = new Vector3(propPosition[0], propPosition[1], propPosition[2]);
-  return playerPosition.distanceTo(propPos) <= range;
+  return (
+    <mesh ref={meshRef} position={position} castShadow>
+      <boxGeometry args={[0.5, 0.5, 0.5]} />
+      <meshStandardMaterial
+        color={color ?? '#38bdf8'}
+        emissive={color ?? '#38bdf8'}
+        emissiveIntensity={isSolved ? 0.15 : 0.9}
+        roughness={0.3}
+        metalness={0.4}
+      />
+    </mesh>
+  );
 }
