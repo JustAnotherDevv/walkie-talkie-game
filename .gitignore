@@ -1,0 +1,9 @@
+assets
+logs
+tmp
+.idea
+format.sh
+GAME_DESIGN.md
+HACKATHON.md
+.env
+node_modules
