@@ -18,4 +18,10 @@ export interface Prop {
   isKeycard?: boolean;
   /** True for the door-0 keycard reader — interacting with it unlocks door 0 iff hasKeycard. */
   isKeycardDoor?: boolean;
+  /** True for the readable final-room note that explains the levers. */
+  isFinalNote?: boolean;
+  /** Identifies a final-room release lever (by side). Toggles pulled-state in the store. */
+  isFinalLever?: 'left' | 'right';
+  /** True for the final-room commit button — starts the ending cutscene based on lever state. */
+  isFinalCommit?: boolean;
 }

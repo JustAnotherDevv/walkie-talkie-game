@@ -1,18 +1,41 @@
+import { useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
+import * as THREE from 'three';
 import { PlayerController } from './PlayerController';
 import { RoomScene } from './RoomScene';
 import { InteractableProp } from './InteractableProp';
 import { WalkieTalkie } from './WalkieTalkie';
 import { DustParticles } from './DustParticles';
+import { IntroCamera, type IntroPhase } from './IntroCamera';
 import { props as propInstances } from '../puzzles/puzzleInstances';
 import type { LightingMode } from '../stores/gameStateStore';
 
 interface SceneProps {
   movementEnabled: boolean;
   lightingMode: LightingMode;
+  introPhase?: IntroPhase;
 }
 
-export function Scene({ movementEnabled, lightingMode }: SceneProps) {
+export function Scene({ movementEnabled, lightingMode, introPhase = 'off' }: SceneProps) {
+  const introActive = introPhase !== 'off';
+  // Memoised so R3F doesn't re-`applyProps` the camera every render —
+  // that was snapping the camera back to (0, 0, 2) and cancelling the
+  // intro lying pose / wake-up animation set by IntroCamera.
+  const cameraConfig = useMemo(() => ({ position: [0, 0, 2] as [number, number, number], fov: 68 }), []);
+
+  // Snap the camera into the lying-on-floor pose the moment R3F
+  // finishes creating it — guarantees the first rendered frame shows
+  // the intro pose, not the default eye-level pose. Scene is only ever
+  // mounted after the player presses Play (which always triggers the
+  // intro), so this is safe to run unconditionally.
+  const onCanvasCreated = useMemo(
+    () => ({ camera }: { camera: THREE.Camera }) => {
+      camera.rotation.order = 'YXZ';
+      camera.position.set(-0.6, -1.75, 2);
+      camera.rotation.set(0.15, 0, Math.PI / 2);
+    },
+    [],
+  );
   const bg =
     lightingMode === 'cut'
       ? '#000000'
@@ -22,12 +45,17 @@ export function Scene({ movementEnabled, lightingMode }: SceneProps) {
 
   return (
     <Canvas
-      camera={{ position: [0, 0, 2], fov: 68 }}
+      camera={cameraConfig}
+      onCreated={onCanvasCreated}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       style={{ position: 'absolute', inset: 0 }}
     >
       <color attach="background" args={[bg]} />
-      <PlayerController enabled={movementEnabled} />
+      {/* Camera wake-up animation drives the camera while the intro
+          overlay fades out — PlayerController is disabled in the same
+          window so the two don't fight over the camera transform. */}
+      <IntroCamera phase={introPhase} />
+      <PlayerController enabled={movementEnabled && !introActive} />
       <RoomScene />
       {propInstances.map((p) => (
         <InteractableProp key={p.id} {...p} />

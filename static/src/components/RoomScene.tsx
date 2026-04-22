@@ -1266,18 +1266,20 @@ function SideRoom() {
         <meshStandardMaterial color={'#58473a'} flatShading />
       </mesh>
 
-      {/* Central pedestal / pillar on the raised platform */}
-      <Box position={[0, PLAT_SURFACE_Y + 0.5, 29.5]} size={[0.6, 1, 0.6]} color={'#352a22'} />
-      <Box position={[0, PLAT_SURFACE_Y + 1.05, 29.5]} size={[0.7, 0.1, 0.7]} color={'#4a3a2e'} />
+      {/* Central pedestal / pillar on the raised platform (z centred on
+          the actual platform, not stranded at the old z=29.5). */}
+      <Box position={[0, PLAT_SURFACE_Y + 0.5, 47.5]} size={[0.6, 1, 0.6]} color={'#352a22'} />
+      <Box position={[0, PLAT_SURFACE_Y + 1.05, 47.5]} size={[0.7, 0.1, 0.7]} color={'#4a3a2e'} />
 
-      {/* Single warm emergency lamp */}
-      <pointLight position={[0, ceilY - 0.5, 29]} intensity={0.9} distance={10} color={'#ff784a'} />
-      <Box position={[0, ceilY - 0.2, 29]} size={[0.3, 0.4, 0.3]} color={'#121014'} emissive={'#ff784a'} emissiveIntensity={0.8} />
+      {/* Single warm emergency lamp — fixture in the ceiling above
+          the raised platform. */}
+      <pointLight position={[0, ceilY - 0.5, 47]} intensity={0.9} distance={10} color={'#ff784a'} />
+      <Box position={[0, ceilY - 0.2, 47]} size={[0.3, 0.4, 0.3]} color={'#121014'} emissive={'#ff784a'} emissiveIntensity={0.8} />
 
-      {/* Scattered debris */}
-      <Box position={[-3.5, FLOOR_Y + 0.25, 24]} size={[0.5, 0.5, 0.5]} color={'#5c4229'} />
-      <Box position={[3.5, FLOOR_Y + 0.2, 25]} size={[0.4, 0.4, 0.4]} color={'#6d4d34'} />
-      <Box position={[-2.8, FLOOR_Y + 0.1, 32]} size={[0.6, 0.2, 0.3]} color={'#3e3227'} />
+      {/* Scattered debris on the side-room floor (z range [40, 52]). */}
+      <Box position={[-3.5, FLOOR_Y + 0.25, 43]} size={[0.5, 0.5, 0.5]} color={'#5c4229'} />
+      <Box position={[3.5, FLOOR_Y + 0.2, 44]} size={[0.4, 0.4, 0.4]} color={'#6d4d34'} />
+      <Box position={[-2.8, FLOOR_Y + 0.1, 51]} size={[0.6, 0.2, 0.3]} color={'#3e3227'} />
     </group>
   );
 }
@@ -1485,11 +1487,105 @@ function FinalRoom() {
       {/* Faint fill */}
       <pointLight position={[cx, ceilY - 3.0, cz]} intensity={0.35} distance={24} color={'#ffd9a8'} />
 
-      {/* Pipes overhead */}
+      {/* Pipes overhead + running along walls */}
       <Pipe from={[cx - 4, ceilY - 0.4, FR_MIN_Z]} to={[cx - 4, ceilY - 0.4, FR_MAX_Z]} radius={0.1} color={'#2a2019'} />
       <Pipe from={[cx + 4, ceilY - 0.4, FR_MIN_Z]} to={[cx + 4, ceilY - 0.4, FR_MAX_Z]} radius={0.1} color={'#2a2019'} />
+      <Pipe from={[cx - 8, ceilY - 0.6, FR_MIN_Z]} to={[cx - 8, ceilY - 0.6, FR_MAX_Z]} radius={0.08} color={'#342a1f'} />
+      <Pipe from={[cx + 8, ceilY - 0.6, FR_MIN_Z]} to={[cx + 8, ceilY - 0.6, FR_MAX_Z]} radius={0.08} color={'#342a1f'} />
+      {/* Vertical pipes on -X wall */}
+      <Pipe from={[FR_MIN_X + 0.3, floorY, cz - 4]} to={[FR_MIN_X + 0.3, ceilY, cz - 4]} radius={0.09} color={'#2a2019'} />
+      <Pipe from={[FR_MIN_X + 0.3, floorY, cz + 4]} to={[FR_MIN_X + 0.3, ceilY, cz + 4]} radius={0.09} color={'#2a2019'} />
+      {/* Horizontal pipes on -X wall */}
+      <Pipe from={[FR_MIN_X + 0.3, 2.5, FR_MIN_Z]} to={[FR_MIN_X + 0.3, 2.5, FR_MAX_Z]} radius={0.1} color={'#2a2019'} />
+      <Pipe from={[FR_MIN_X + 0.3, 5.5, FR_MIN_Z]} to={[FR_MIN_X + 0.3, 5.5, FR_MAX_Z]} radius={0.1} color={'#2a2019'} />
+      {/* Horizontal pipes on +X wall */}
+      <Pipe from={[FR_MAX_X - 0.3, 2.5, FR_MIN_Z]} to={[FR_MAX_X - 0.3, 2.5, FR_MAX_Z]} radius={0.1} color={'#2a2019'} />
+      <Pipe from={[FR_MAX_X - 0.3, 5.5, FR_MIN_Z]} to={[FR_MAX_X - 0.3, 5.5, FR_MAX_Z]} radius={0.1} color={'#2a2019'} />
 
-      {/* Scattered debris to sell the "abandoned space" vibe */}
+      {/* Valve wheels protruding from the -X wall pipes */}
+      {[cz - 6, cz - 1, cz + 4].map((vz, i) => (
+        <group key={`valve-${i}`} position={[FR_MIN_X + 0.6, 2.5, vz]}>
+          {/* Stem */}
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.04, 0.04, 0.3, 8]} />
+            <meshStandardMaterial color={'#3a2d20'} metalness={0.8} roughness={0.4} flatShading />
+          </mesh>
+          {/* Wheel */}
+          <mesh position={[0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <torusGeometry args={[0.22, 0.04, 8, 18]} />
+            <meshStandardMaterial color={'#7a1f1f'} metalness={0.6} roughness={0.5} flatShading />
+          </mesh>
+          {/* Spokes (cross) */}
+          <mesh position={[0.22, 0, 0]} rotation={[0, 0, 0]}>
+            <boxGeometry args={[0.04, 0.4, 0.04]} />
+            <meshStandardMaterial color={'#7a1f1f'} metalness={0.6} roughness={0.5} flatShading />
+          </mesh>
+          <mesh position={[0.22, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <boxGeometry args={[0.04, 0.4, 0.04]} />
+            <meshStandardMaterial color={'#7a1f1f'} metalness={0.6} roughness={0.5} flatShading />
+          </mesh>
+        </group>
+      ))}
+
+      {/* CRT monitor bank mounted on the +Z far wall */}
+      {[cx - 6, cx - 2, cx + 2, cx + 6].map((mx, i) => {
+        const screenColor = i % 2 === 0 ? '#66f0c0' : '#7ccfff';
+        return (
+          <group key={`crt-${i}`} position={[mx, 4.8, FR_MAX_Z - 0.4]}>
+            {/* Bulky housing */}
+            <mesh>
+              <boxGeometry args={[1.6, 1.3, 0.7]} />
+              <meshStandardMaterial color={'#bdb8a8'} roughness={0.7} flatShading />
+            </mesh>
+            {/* Screen bezel */}
+            <mesh position={[0, 0, 0.36]}>
+              <boxGeometry args={[1.3, 1.0, 0.02]} />
+              <meshStandardMaterial color={'#3a3530'} roughness={0.9} flatShading />
+            </mesh>
+            {/* Glowing screen */}
+            <mesh position={[0, 0, 0.37]}>
+              <boxGeometry args={[1.15, 0.85, 0.01]} />
+              <meshStandardMaterial
+                color={'#0a2020'}
+                emissive={screenColor}
+                emissiveIntensity={0.55}
+                roughness={0.6}
+              />
+            </mesh>
+            {/* Power LED */}
+            <mesh position={[-0.55, -0.55, 0.36]}>
+              <boxGeometry args={[0.04, 0.04, 0.02]} />
+              <meshStandardMaterial color={'#ef4444'} emissive={'#ef4444'} emissiveIntensity={0.9} />
+            </mesh>
+          </group>
+        );
+      })}
+
+      {/* ── Central console with twin levers + commit button ─────────── */}
+      {/* Console base (large angled desk) */}
+      <Box position={[-22, floorY + 0.4, 74]} size={[3.4, 0.1, 1.6]} color={'#3e3227'} />
+      <Box position={[-22, floorY + 0.2, 74]} size={[3.4, 0.4, 1.6]} color={'#2e261e'} />
+      {/* Side panels */}
+      <Box position={[-23.75, floorY + 0.25, 74]} size={[0.15, 0.5, 1.6]} color={'#1a140f'} />
+      <Box position={[-20.25, floorY + 0.25, 74]} size={[0.15, 0.5, 1.6]} color={'#1a140f'} />
+      {/* Angled top panel (recessed for levers + button) */}
+      <Box position={[-22, floorY + 0.5, 74.4]} size={[3.2, 0.08, 0.7]} color={'#24201c'} />
+      {/* Label plates next to each lever */}
+      <Box position={[-22.9, floorY + 0.52, 74.75]} size={[0.7, 0.02, 0.18]} color={'#d4c199'} emissive={'#d4c199'} emissiveIntensity={0.15} />
+      <Box position={[-21.1, floorY + 0.52, 74.75]} size={[0.7, 0.02, 0.18]} color={'#d4c199'} emissive={'#d4c199'} emissiveIntensity={0.15} />
+
+      {/* Live lever visuals — rotation driven by store state */}
+      <FinalLever position={[-22.9, floorY + 0.5, 74]} side="left" />
+      <FinalLever position={[-21.1, floorY + 0.5, 74]} side="right" />
+
+      {/* Commit button — glows when either lever is pulled */}
+      {/* Button base sits flush on the angled-top panel surface (y≈-1.46). */}
+      <FinalCommitButton position={[-22, floorY + 0.58, 74.4]} />
+
+      {/* Note on the console (the orange flat card drawn by InteractableProp
+          sits on top of the console surface). */}
+
+      {/* Scattered debris */}
       <Box position={[cx - 8, floorY + 0.3, cz - 4]} size={[0.6, 0.6, 0.6]} color={'#5c4229'} />
       <Box position={[cx + 5, floorY + 0.2, cz + 2]} size={[0.5, 0.4, 0.8]} color={'#3e3227'} />
       <Box position={[cx - 2, floorY + 0.15, cz + 7]} size={[0.4, 0.3, 0.4]} color={'#5c4229'} />
@@ -1507,6 +1603,120 @@ function FinalRoom() {
           color={'#c9b88c'}
         />
       ))}
+    </group>
+  );
+}
+
+// ── Final lever (state-driven rotation) ──────────────────────────────
+
+/**
+ * A mechanical throw-lever sitting on the final-room console. Its handle
+ * rotates forward as the player pulls it; "pulled" state lives in the
+ * store (`leverLeftPulled` / `leverRightPulled`).
+ */
+function FinalLever({
+  position,
+  side,
+}: {
+  position: [number, number, number];
+  side: 'left' | 'right';
+}) {
+  const handleRef = useRef<THREE.Group>(null);
+  const leverLeftPulled = useGameStateStore((s) => s.leverLeftPulled);
+  const leverRightPulled = useGameStateStore((s) => s.leverRightPulled);
+  const pulled = side === 'left' ? leverLeftPulled : leverRightPulled;
+  const targetRot = useRef(0);
+
+  useFrame((_, dt) => {
+    if (!handleRef.current) return;
+    const target = pulled ? Math.PI / 3 : 0;
+    targetRot.current += (target - targetRot.current) * Math.min(1, dt * 6);
+    handleRef.current.rotation.x = targetRot.current;
+  });
+
+  const accent = side === 'left' ? '#fbbf24' : '#38bdf8';
+
+  return (
+    <group position={position}>
+      {/* Mounting plate */}
+      <mesh>
+        <boxGeometry args={[0.35, 0.06, 0.35]} />
+        <meshStandardMaterial color={'#2a241c'} roughness={0.8} flatShading />
+      </mesh>
+      {/* Hinge pin */}
+      <mesh position={[0, 0.04, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.3, 10]} />
+        <meshStandardMaterial color={'#1a1a1a'} metalness={0.9} roughness={0.3} />
+      </mesh>
+      {/* Handle (this rotates forward on pull) */}
+      <group ref={handleRef} position={[0, 0.04, 0]}>
+        <mesh position={[0, 0.3, 0]}>
+          <boxGeometry args={[0.08, 0.6, 0.08]} />
+          <meshStandardMaterial color={'#2a2a2a'} metalness={0.6} roughness={0.4} flatShading />
+        </mesh>
+        {/* Knob at the top */}
+        <mesh position={[0, 0.65, 0]}>
+          <sphereGeometry args={[0.08, 12, 10]} />
+          <meshStandardMaterial
+            color={accent}
+            emissive={accent}
+            emissiveIntensity={pulled ? 0.45 : 0.15}
+            metalness={0.5}
+            roughness={0.3}
+          />
+        </mesh>
+      </group>
+      {/* Status LED on the base */}
+      <mesh position={[0.14, 0.03, 0.14]}>
+        <boxGeometry args={[0.04, 0.02, 0.04]} />
+        <meshStandardMaterial
+          color={pulled ? '#22c55e' : '#7a1f1f'}
+          emissive={pulled ? '#22c55e' : '#7a1f1f'}
+          emissiveIntensity={0.85}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// ── Final commit button — fires the ending cutscene ─────────────────
+
+function FinalCommitButton({
+  position,
+}: {
+  position: [number, number, number];
+}) {
+  const leftPulled = useGameStateStore((s) => s.leverLeftPulled);
+  const rightPulled = useGameStateStore((s) => s.leverRightPulled);
+  const anyPulled = leftPulled || rightPulled;
+  const btnRef = useRef<THREE.MeshStandardMaterial>(null);
+
+  useFrame(({ clock }) => {
+    if (!btnRef.current) return;
+    const base = anyPulled ? 0.85 : 0.18;
+    const pulse = anyPulled ? Math.sin(clock.elapsedTime * 3.5) * 0.15 : 0;
+    btnRef.current.emissiveIntensity = base + pulse;
+  });
+
+  return (
+    <group position={position}>
+      {/* Base ring */}
+      <mesh>
+        <cylinderGeometry args={[0.2, 0.22, 0.08, 24]} />
+        <meshStandardMaterial color={'#1a1a1a'} metalness={0.7} roughness={0.4} flatShading />
+      </mesh>
+      {/* Dome button */}
+      <mesh position={[0, 0.08, 0]}>
+        <sphereGeometry args={[0.16, 20, 14, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial
+          ref={btnRef}
+          color={'#b91c1c'}
+          emissive={'#ef4444'}
+          emissiveIntensity={0.2}
+          metalness={0.4}
+          roughness={0.35}
+        />
+      </mesh>
     </group>
   );
 }
@@ -1621,14 +1831,13 @@ export function RoomScene() {
       ? [true, true]
       : [isDoorLocked(0, solvedPuzzles, door0Opened), isDoorLocked(1, solvedPuzzles, door0Opened)];
 
-  // Catwalk door — gates the final room, opens when puzzles 02 + 03 are
-  // both solved (same gate door 1 used to have before door 1 was made
-  // always-open).
+  // Catwalk door — gates the actual final room. Unlocks as soon as the
+  // player solves ANY puzzle (same trigger that fires the voice's
+  // "machinery has come alive" interjection in App.tsx).
+  const anySolved = solvedPuzzles.size >= 1;
   const catwalkLocked =
     doorsMode === 'all-sealed' ||
-    (doorsMode !== 'all-open' &&
-      !(solvedPuzzles.has('puzzle_02_split_combination') &&
-        solvedPuzzles.has('puzzle_03_descriptive_match')));
+    (doorsMode !== 'all-open' && !anySolved);
 
   return (
     <group>

@@ -38,6 +38,16 @@ export interface GameState {
   hasKeycard: boolean;
   door0Opened: boolean;
 
+  /** Endgame narrative flags — each fires a scripted agent interjection once. */
+  allPuzzlesSolvedFired: boolean;
+  enteredFinalCorridor: boolean;
+
+  /** Final-room mechanism state. */
+  leverLeftPulled: boolean;
+  leverRightPulled: boolean;
+  /** True while the fade-to-black cutscene is on screen (after commit button). */
+  finalCutscenePlaying: boolean;
+
   // Actions
   startGame: () => void;
   advanceBeat: () => void;
@@ -55,6 +65,12 @@ export interface GameState {
   setDoorsMode: (mode: DoorsMode) => void;
   pickUpKeycard: () => void;
   openDoor0WithKeycard: () => boolean;
+
+  markAllPuzzlesSolvedFired: () => void;
+  markEnteredFinalCorridor: () => void;
+  toggleLever: (side: 'left' | 'right') => void;
+  triggerFinalCutscene: () => void;
+  setFinalCutscenePlaying: (playing: boolean) => void;
 }
 
 const initialState = {
@@ -75,6 +91,11 @@ const initialState = {
   doorsMode: 'gated' as DoorsMode,
   hasKeycard: false,
   door0Opened: false,
+  allPuzzlesSolvedFired: false,
+  enteredFinalCorridor: false,
+  leverLeftPulled: false,
+  leverRightPulled: false,
+  finalCutscenePlaying: false,
 };
 
 export const useGameStateStore = create<GameState>((set, get) => ({
@@ -163,4 +184,17 @@ export const useGameStateStore = create<GameState>((set, get) => ({
     set({ door0Opened: true });
     return true;
   },
+
+  markAllPuzzlesSolvedFired: () =>
+    set((s) => (s.allPuzzlesSolvedFired ? s : { allPuzzlesSolvedFired: true })),
+  markEnteredFinalCorridor: () =>
+    set((s) => (s.enteredFinalCorridor ? s : { enteredFinalCorridor: true })),
+  toggleLever: (side) =>
+    set((s) =>
+      side === 'left'
+        ? { leverLeftPulled: !s.leverLeftPulled }
+        : { leverRightPulled: !s.leverRightPulled },
+    ),
+  triggerFinalCutscene: () => set({ finalCutscenePlaying: true }),
+  setFinalCutscenePlaying: (playing) => set({ finalCutscenePlaying: playing }),
 }));

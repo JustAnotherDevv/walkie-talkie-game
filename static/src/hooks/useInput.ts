@@ -38,6 +38,14 @@ export function useInput(
   useEffect(() => {
     if (!enabled) return;
 
+    // Seed pointer-lock state from the current document. Without this,
+    // if the lock was acquired while `enabled` was false (e.g. during an
+    // intro cutscene where input was temporarily disabled), the
+    // `pointerlockchange` event has already fired and we'd miss it —
+    // leaving this ref stale at `false` and silently dropping mouse-look
+    // deltas until the player manually releases + re-acquires lock.
+    pointerLocked.current = document.pointerLockElement !== null;
+
     const onKeyDown = (e: KeyboardEvent) => {
       switch (e.code) {
         case 'KeyW': input.current.forward = true; break;

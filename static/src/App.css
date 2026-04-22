@@ -685,6 +685,85 @@ strong {
   opacity: 0.6;
 }
 
+/* Intro cutscene — fullscreen black over the 3D scene with typewriter
+   monologue. All opacity animation is driven by rAF in the component;
+   CSS only provides layout + typography. */
+.intro-cutscene {
+  position: fixed;
+  inset: 0;
+  background-color: #000;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.intro-cutscene .intro-text {
+  color: #d4cfc4;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: clamp(14px, 1.8vw, 22px);
+  line-height: 1.75;
+  max-width: 700px;
+  white-space: pre-wrap;
+  text-align: left;
+  margin: 0;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+
+.intro-cutscene .intro-caret {
+  display: inline-block;
+  margin-left: 2px;
+  color: #b5b0a5;
+  animation: intro-caret-blink 1s steps(1) infinite;
+}
+
+@keyframes intro-caret-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Fade-to-black final-cutscene overlay shown between commit button and
+   the EndingScreen. Fades in from transparent, then the "THIS IS THE END"
+   text fades in after a short delay. */
+.final-cutscene {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: final-cutscene-fade 3.8s ease-in forwards;
+  pointer-events: auto;
+}
+
+.final-cutscene-text {
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: clamp(28px, 5vw, 54px);
+  letter-spacing: 0.4em;
+  font-weight: 700;
+  padding-left: 0.4em;
+  text-transform: uppercase;
+  text-align: center;
+  opacity: 0;
+  animation: final-cutscene-text 4.5s ease-in 1.8s forwards;
+  text-shadow: 0 0 18px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes final-cutscene-fade {
+  0% { background: rgba(0, 0, 0, 0); }
+  100% { background: rgba(0, 0, 0, 1); }
+}
+
+@keyframes final-cutscene-text {
+  0%   { opacity: 0; letter-spacing: 0.6em; }
+  60%  { opacity: 1; letter-spacing: 0.4em; }
+  100% { opacity: 1; letter-spacing: 0.42em; }
+}
+
 /* Caption overlay: what the AI partner is saying, bottom of screen. */
 .caption-overlay {
   position: absolute;

@@ -11,9 +11,10 @@ interface InteractablePropProps extends Prop {}
 
 /**
  * World-space glowing interactable. Default behaviour is to open a reveal
- * panel; special flags (`isKeycard`, `isKeycardDoor`, `isMidGameRevealProp`)
- * swap in alternate behaviour and — for the keycard / door pair — hide the
- * prop after it's been "used".
+ * panel; special flags swap in alternate behaviour. Final-room levers and
+ * the commit button don't render any mesh here — their visuals live in
+ * `FinalRoom` and react to the store state directly — they only register
+ * an interaction volume.
  */
 export function InteractableProp({
   id,
@@ -24,6 +25,9 @@ export function InteractableProp({
   isMidGameRevealProp,
   isKeycard,
   isKeycardDoor,
+  isFinalNote,
+  isFinalLever,
+  isFinalCommit,
   color,
 }: InteractablePropProps) {
   const meshRef = useRef<Mesh>(null);
@@ -34,19 +38,39 @@ export function InteractableProp({
   const door0Opened = useGameStateStore((s) => s.door0Opened);
   const pickUpKeycard = useGameStateStore((s) => s.pickUpKeycard);
   const openDoor0WithKeycard = useGameStateStore((s) => s.openDoor0WithKeycard);
+  const leverLeftPulled = useGameStateStore((s) => s.leverLeftPulled);
+  const leverRightPulled = useGameStateStore((s) => s.leverRightPulled);
+  const toggleLever = useGameStateStore((s) => s.toggleLever);
+  const triggerFinalCutscene = useGameStateStore((s) => s.triggerFinalCutscene);
+  const finalCutscenePlaying = useGameStateStore((s) => s.finalCutscenePlaying);
 
   const isSolved =
     puzzleId != null ? solvedPuzzles.has(puzzleId) : false;
 
   // A keycard is "consumed" once picked up; the door-reader stops being
-  // interactable once the door is open.
+  // interactable once the door is open. Final-room interactables stay
+  // available until the cutscene starts (at which point we freeze them).
   const isConsumed =
-    (isKeycard && hasKeycard) || (isKeycardDoor && door0Opened);
+    (isKeycard && hasKeycard) ||
+    (isKeycardDoor && door0Opened) ||
+    ((isFinalLever || isFinalCommit) && finalCutscenePlaying);
 
   const worldPos = useMemo(
     () => new Vector3(position[0], position[1], position[2]),
     [position],
   );
+
+  // The lever's prompt reflects whether it's currently pulled.
+  const dynamicPrompt =
+    isFinalLever === 'left'
+      ? leverLeftPulled
+        ? 'Push the LEFT lever back up'
+        : 'Pull the LEFT lever down'
+      : isFinalLever === 'right'
+      ? leverRightPulled
+        ? 'Push the RIGHT lever back up'
+        : 'Pull the RIGHT lever down'
+      : interactionPrompt;
 
   useEffect(() => {
     if (isConsumed) {
@@ -56,7 +80,7 @@ export function InteractableProp({
     interactableRegistry.register({
       id,
       position: worldPos,
-      prompt: interactionPrompt,
+      prompt: dynamicPrompt,
       onInteract: () => {
         audioBus.playSFX?.(SFXKey.ObjectInteract);
 
@@ -67,12 +91,27 @@ export function InteractableProp({
 
         if (isKeycardDoor) {
           const ok = openDoor0WithKeycard();
-          // No reveal on success — the door swings open and that is the
-          // feedback. Only show a reveal when the player tries without a
-          // keycard so the failure isn't silent.
           if (!ok) {
             openReveal('The reader blinks red. You need a keycard.', null);
           }
+          return;
+        }
+
+        if (isFinalLever) {
+          toggleLever(isFinalLever);
+          return;
+        }
+
+        if (isFinalCommit) {
+          // Commit whatever lever state is set. The orchestration
+          // (context injection, partner decision, ending resolution) is
+          // driven from App.tsx by watching `finalCutscenePlaying`.
+          triggerFinalCutscene();
+          return;
+        }
+
+        if (isFinalNote) {
+          openReveal(revealContent, null);
           return;
         }
 
@@ -88,18 +127,23 @@ export function InteractableProp({
   }, [
     id,
     worldPos,
-    interactionPrompt,
+    dynamicPrompt,
     revealContent,
     puzzleId,
     isMidGameRevealProp,
     isKeycard,
     isKeycardDoor,
+    isFinalNote,
+    isFinalLever,
+    isFinalCommit,
     isConsumed,
     isSolved,
     openReveal,
     triggerMidGameReveal,
     pickUpKeycard,
     openDoor0WithKeycard,
+    toggleLever,
+    triggerFinalCutscene,
   ]);
 
   useFrame((_, dt) => {
@@ -109,12 +153,17 @@ export function InteractableProp({
     meshRef.current.position.y = position[1] + Math.sin(performance.now() * 0.002) * 0.06;
   });
 
+  // Levers + commit button have their visuals rendered in FinalRoom; we
+  // only register the interaction volume, so skip the mesh here.
+  if (isFinalLever || isFinalCommit) return null;
   if (isConsumed) return null;
 
-  // Keycard gets a flatter card-shaped mesh, the door-reader a small panel.
+  // Keycard gets a flatter card-shaped mesh, the door-reader a small panel,
+  // the note a flat card.
   const geom =
     isKeycard ? ([0.45, 0.28, 0.04] as const)
     : isKeycardDoor ? ([0.4, 0.55, 0.08] as const)
+    : isFinalNote ? ([0.35, 0.02, 0.45] as const)
     : ([0.5, 0.5, 0.5] as const);
 
   const accent = color ?? '#38bdf8';

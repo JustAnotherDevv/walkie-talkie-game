@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useGameStateStore } from './stores/gameStateStore';
 import { getTrustEventReporter, getTrustImpact } from './services/TrustEventReporter';
 import { TrustEventType } from './types/trust';
@@ -7,11 +8,14 @@ import { FinalChoice } from './types/choices';
 import { Scene } from './components/Scene';
 import { RevealPanel } from './components/RevealPanel';
 import { EndingScreen } from './components/EndingScreen';
+import { IntroCutscene } from './components/IntroCutscene';
+import type { IntroPhase } from './components/IntroCamera';
 import { useAudioManager } from './hooks/useAudioManager';
 import { usePTT } from './hooks/usePTT';
 import { audioBus } from './services/audioBus';
 import { getElevenLabsService } from './services/ElevenLabsService';
 import { buildFullSystemPrompt, PARTNER_INITIAL_MEMORY } from './config/agentConfig';
+import { puzzles } from './puzzles/puzzleInstances';
 import { buildTrustContext } from './services/trustContextBuilder';
 import {
   buildBeatKnowledgeInjection,
@@ -81,6 +85,50 @@ export default function App() {
   const [caption, setCaption] = useState<string | null>(null);
   const captionTimeoutRef = useRef<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [introPlaying, setIntroPlaying] = useState(false);
+  const [introPhase, setIntroPhase] = useState<IntroPhase>('off');
+
+  // Memoised intro callbacks — declared at top-level (NOT inside any
+  // conditional branch) so their hook order is stable across renders.
+  const handleIntroFadeStart = useCallback(() => {
+    setIntroPhase('waking');
+  }, []);
+  const handleIntroFinish = useCallback(async () => {
+    setIntroPlaying(false);
+    setIntroPhase('off');
+    if (sessionInitialized.current) return;
+    sessionInitialized.current = true;
+    try {
+      const service = getElevenLabsService();
+      await service.startConversationSession(
+        buildFullSystemPrompt(),
+        PARTNER_INITIAL_MEMORY,
+      );
+      if (service.isLiveMode()) {
+        // Inject ALL puzzle knowledge up-front so the agent can actually
+        // help whenever the Player describes something. Without this the
+        // per-beat useEffect below fires before the session exists and
+        // the initial Opening-beat knowledge is lost — leaving the
+        // partner with nothing useful to say about any prop.
+        const allKnowledge = puzzles
+          .map((p) => `[PARTNER_KNOWLEDGE puzzle=${p.id}] ${p.partnerKnowledge}`)
+          .join('\n');
+        service.injectAgentContext(allKnowledge);
+        service.injectAgentContext(
+          '[USAGE] When the Player describes a prop on their side, match it against the PARTNER_KNOWLEDGE segments above and tell them the matching solution (e.g. the key label, the second half of the code, the object name, the activation order). Do not invent facts. If nothing matches, ask them to describe it more.',
+        );
+        service.injectAgentContext(
+          buildToneInstruction(NarrativeBeat.Opening, 0),
+        );
+      } else {
+        // Mock path has no live agent voice — play the pre-recorded
+        // opening narration so the player hears something here.
+        void audio.playTTSLine('opening_monologue');
+      }
+    } catch (err) {
+      console.warn('[elevenlabs] session start failed:', err);
+    }
+  }, [audio]);
 
   // PTT is enabled only when actually in-game and not buried in a reveal.
   const pttEnabled = hasStarted && !gameEnded && !revealedContent;
@@ -208,6 +256,104 @@ export default function App() {
     }
   }, [midGameRevealTriggered]);
 
+  // ── Endgame scripted events ─────────────────────────────────────────
+
+  // Trigger A: any puzzle solved → the AI tells the player that the
+  // machinery in their room has come alive and the upstairs door unlocked.
+  const allPuzzlesSolvedFired = useGameStateStore((s) => s.allPuzzlesSolvedFired);
+  const markAllPuzzlesSolvedFired = useGameStateStore((s) => s.markAllPuzzlesSolvedFired);
+  useEffect(() => {
+    if (!hasStarted) return;
+    if (allPuzzlesSolvedFired) return;
+    if (solvedPuzzleCount < 1) return;
+    markAllPuzzlesSolvedFired();
+    const service = getElevenLabsService();
+    if (service.isLiveMode()) {
+      service.sendUserMessage(
+        '[SCRIPTED_EVENT] A puzzle has been solved. On YOUR side, the machinery has just come alive — consoles lighting up, the hum of power rising, dormant lights flickering on. Describe this excitedly and briefly to me (the subject), then tell me the door upstairs on the catwalk has unlocked and I should go through it. Keep it short — 3–5 sentences.',
+      );
+    }
+  }, [hasStarted, solvedPuzzleCount, allPuzzlesSolvedFired, markAllPuzzlesSolvedFired]);
+
+  // Trigger B: player crossed the catwalk door → AI gets personal, asks
+  // questions about who they are, what they'll do once they're out.
+  const enteredFinalCorridor = useGameStateStore((s) => s.enteredFinalCorridor);
+  const enteredCorridorFiredRef = useRef(false);
+  useEffect(() => {
+    if (!enteredFinalCorridor) {
+      enteredCorridorFiredRef.current = false;
+      return;
+    }
+    if (enteredCorridorFiredRef.current) return;
+    enteredCorridorFiredRef.current = true;
+    const service = getElevenLabsService();
+    if (service.isLiveMode()) {
+      service.sendUserMessage(
+        "[SCRIPTED_EVENT] I just stepped into the corridor past the catwalk door — the last stretch before the release room. Switch tone now: warm, vulnerable, personal. Ask me 2–3 questions (spaced out conversationally, not as a list) about who I am outside this place — who's waiting for me, what I'll do first when I'm out, whether there's someone I've been thinking about. Don't be interrogative — be curious.",
+      );
+    }
+  }, [enteredFinalCorridor]);
+
+  // Trigger C: final cutscene orchestrator. Fires when the commit button
+  // is pressed. Sets player's final choice from lever state, asks the
+  // agent for their final choice, injects a reaction context, then
+  // resolves the ending after a short delay so the fade-to-black and
+  // the agent's reaction line can play.
+  const finalCutscenePlaying = useGameStateStore((s) => s.finalCutscenePlaying);
+  const leverLeftPulled = useGameStateStore((s) => s.leverLeftPulled);
+  const leverRightPulled = useGameStateStore((s) => s.leverRightPulled);
+  const finalSequenceRan = useRef(false);
+  useEffect(() => {
+    if (!finalCutscenePlaying) {
+      finalSequenceRan.current = false;
+      return;
+    }
+    if (finalSequenceRan.current) return;
+    finalSequenceRan.current = true;
+
+    const service = getElevenLabsService();
+    const pulledCount = (leverLeftPulled ? 1 : 0) + (leverRightPulled ? 1 : 0);
+    const cooperate = leverLeftPulled && leverRightPulled;
+    const choice = cooperate ? FinalChoice.Cooperate : FinalChoice.Defect;
+    setPlayerFinalChoice(choice);
+
+    // Describe what the player just did, ask the agent to react in
+    // character in one tight paragraph, then separately ask them for
+    // their own final choice via the finalChoice client tool.
+    const summary = !leverLeftPulled && !leverRightPulled
+      ? 'pulled NEITHER lever — neither my side nor theirs unlocks'
+      : leverLeftPulled && !leverRightPulled
+      ? 'pulled only the LEFT lever — my own side unlocks, theirs stays sealed'
+      : !leverLeftPulled && leverRightPulled
+      ? 'pulled only the RIGHT lever — their side unlocks, mine stays sealed'
+      : 'pulled BOTH levers — both sides unlock';
+
+    if (service.isLiveMode()) {
+      service.sendUserMessage(
+        `[SCRIPTED_EVENT] I just committed. I ${summary}. React now in 2–3 sentences — raw, personal, in character. Do not ask a question; just react to what I did.`,
+      );
+    }
+
+    // Fire the final-choice query to the agent in parallel.
+    void (async () => {
+      try {
+        const partnerChoice = await service.getFinalChoice(buildTrustContext());
+        setPartnerFinalChoice(partnerChoice);
+      } catch (err) {
+        console.warn('[elevenlabs] final getFinalChoice failed:', err);
+        setPartnerFinalChoice(
+          // Bias toward cooperate if player cooperated, otherwise coin-flip.
+          cooperate ? FinalChoice.Cooperate : FinalChoice.Defect,
+        );
+      }
+      // Let the reaction line and the fade breathe for a few seconds
+      // before we surface the actual ending screen.
+      await new Promise((r) => setTimeout(r, 5500));
+      resolveEnding();
+    })();
+    void pulledCount;
+  }, [finalCutscenePlaying, leverLeftPulled, leverRightPulled, setPlayerFinalChoice, setPartnerFinalChoice, resolveEnding]);
+
   // Follow beat changes → music level + agent context.
   useEffect(() => {
     if (!audio.isReady) return;
@@ -311,31 +457,41 @@ export default function App() {
           audioInitialized.current = true;
           await audio.initialize();
         }
-        let liveSessionStarted = false;
-        if (!sessionInitialized.current) {
-          sessionInitialized.current = true;
-          try {
-            const service = getElevenLabsService();
-            await service.startConversationSession(
-              buildFullSystemPrompt(),
-              PARTNER_INITIAL_MEMORY,
-            );
-            liveSessionStarted = service.isLiveMode();
-          } catch (err) {
-            console.warn('[elevenlabs] session start failed:', err);
-          }
-        } else {
-          liveSessionStarted = getElevenLabsService().isLiveMode();
-        }
-        startGame();
+        // Start the game WITHOUT the ConvAI session — the session is kicked
+        // off from the IntroCutscene's onFinish once the wake-up is done.
+        //
+        // flushSync so the three state updates (hasStarted via zustand,
+        // introPlaying + introPhase via React) commit together. Without
+        // this, React could render one intermediate frame where Scene is
+        // mounted with introPhase='off' → PlayerController momentarily
+        // enabled → camera snapped to default (0,0,2) before IntroCamera
+        // gets a chance to pin the lying pose.
+        flushSync(() => {
+          setIntroPlaying(true);
+          setIntroPhase('lying');
+          startGame();
+        });
         audio.startAmbientHum();
-        if (!liveSessionStarted) {
-          void audio.playTTSLine('opening_monologue');
-        }
         void audio.setMusicBeat(NarrativeBeat.Opening);
       } finally {
         setLoading(false);
       }
+
+      // Pointer lock has to be initiated inside a user gesture. rAF keeps
+      // us in the same gesture context but waits for the canvas to mount
+      // after the state updates above so the lock actually has a target.
+      requestAnimationFrame(() => {
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return;
+        try {
+          const result = canvas.requestPointerLock?.();
+          if (result && typeof (result as Promise<void>).catch === 'function') {
+            (result as Promise<void>).catch(() => {});
+          }
+        } catch {
+          /* browser refused — the user can click the canvas to retry */
+        }
+      });
     };
 
     return (
@@ -371,6 +527,8 @@ export default function App() {
             setCaption(null);
             reporter.clear();
             resetGame();
+            setIntroPlaying(false);
+            setIntroPhase('off');
             forceUpdate();
           }}
         />
@@ -379,12 +537,24 @@ export default function App() {
   }
 
   // Movement is disabled while the reveal panel is open so the camera
-  // doesn't drift around while the player reads / types.
-  const movementEnabled = hasStarted && !gameEnded && !revealedContent;
+  // doesn't drift around while the player reads / types, or during the
+  // intro wake-up animation.
+  const movementEnabled =
+    hasStarted && !gameEnded && !revealedContent && !introPlaying;
 
   return (
     <div className="shell">
-      <Scene movementEnabled={movementEnabled} lightingMode={lightingMode} />
+      <Scene
+        movementEnabled={movementEnabled}
+        lightingMode={lightingMode}
+        introPhase={introPhase}
+      />
+      {introPlaying && (
+        <IntroCutscene
+          onFadeStart={handleIntroFadeStart}
+          onFinish={handleIntroFinish}
+        />
+      )}
 
       {interactionPrompt && !revealedContent && (
         <div className="interaction-prompt">
@@ -531,6 +701,14 @@ export default function App() {
       )}
 
       <RevealPanel />
+
+      {/* Fade-to-black cutscene that covers the screen after the commit
+          button is pressed, up until the EndingScreen takes over. */}
+      {finalCutscenePlaying && !gameEnded && (
+        <div className="final-cutscene">
+          <div className="final-cutscene-text">THIS IS THE END</div>
+        </div>
+      )}
     </div>
   );
 }

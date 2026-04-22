@@ -6,6 +6,7 @@ import { interactableRegistry } from '../services/interactableRegistry';
 import { useGameStateStore } from '../stores/gameStateStore';
 import { isDoorLocked } from '../puzzles/puzzleInstances';
 import { getFloorY, EYE_HEIGHT } from './RoomScene';
+import { resolveWallCollisions } from './collision';
 
 const MOVE_SPEED = 4;
 const LOOK_SENSITIVITY = 0.0025;
@@ -32,6 +33,8 @@ export function PlayerController({ enabled }: PlayerControllerProps) {
   const doorsMode = useGameStateStore((s) => s.doorsMode);
   const solvedPuzzles = useGameStateStore((s) => s.solvedPuzzles);
   const door0Opened = useGameStateStore((s) => s.door0Opened);
+  const enteredFinalCorridor = useGameStateStore((s) => s.enteredFinalCorridor);
+  const markEnteredFinalCorridor = useGameStateStore((s) => s.markEnteredFinalCorridor);
 
   const { input } = useInput(
     {
@@ -106,14 +109,12 @@ export function PlayerController({ enabled }: PlayerControllerProps) {
       }
 
       // Catwalk door (main hall -X wall at mezzanine level, z ∈ [35.5,
-      // 37.5]). Locked until puzzles 02 + 03 are solved. Player must be
+      // 37.5]). Unlocks as soon as any puzzle is solved. Player must be
       // near the mezzanine eye-height and within the doorway's Z range
       // for this to block them on the X axis.
       const catwalkLocked =
         doorsMode === 'all-sealed' ||
-        (doorsMode !== 'all-open' &&
-          !(solvedPuzzles.has('puzzle_02_split_combination') &&
-            solvedPuzzles.has('puzzle_03_descriptive_match')));
+        (doorsMode !== 'all-open' && solvedPuzzles.size < 1);
       const atCatwalkDoor =
         camera.position.z >= 35.5 && camera.position.z <= 37.5 &&
         camera.position.y > 1.5; // above mezzanine floor (y=2) approximately
@@ -127,12 +128,30 @@ export function PlayerController({ enabled }: PlayerControllerProps) {
           camera.position.x = -10.4;
         }
       }
+
+      // Finally, push the player out of any solid wall they've clipped
+      // into during this frame. AABB list covers every functional wall.
+      resolveWallCollisions(camera.position);
     }
 
     // Elevation: lift the camera onto ramps/stairs/platforms. Smoothed so
     // the transition isn't a teleport.
     const targetY = getFloorY(camera.position.x, camera.position.z, camera.position.y) + EYE_HEIGHT;
     camera.position.y += (targetY - camera.position.y) * Math.min(1, dt * 10);
+
+    // Fire the "entered the final corridor" narrative event once, when
+    // the player crosses past the catwalk door onto the mezzanine-level
+    // corridor (x < -10, in the doorway z-range, above mezzanine floor).
+    if (
+      !enteredFinalCorridor &&
+      camera.position.x < -10.2 &&
+      camera.position.x > -22 &&
+      camera.position.z >= 34 &&
+      camera.position.z <= 38.5 &&
+      camera.position.y > 1.5
+    ) {
+      markEnteredFinalCorridor();
+    }
 
     // Scan for nearest interactable in range. Writes interactionPrompt only
     // when the focused target actually changes — not every frame.

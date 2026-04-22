@@ -1,4 +1,4 @@
-# Static — a voice-first cooperative escape room
+# Walkie Talkie — a voice-first cooperative escape room
 
 > A 3D first-person cooperative escape room playable in the browser.
 > You are trapped in an abandoned industrial facility. The only way out
@@ -14,8 +14,51 @@ Built for **Kiro × ElevenLabs Hack #5** (see [`HACKATHON.md`](./HACKATHON.md)
 and [`GAME_DESIGN.md`](./GAME_DESIGN.md)). Target playthrough length
 ~10–15 minutes.
 
+## How Kiro built this
+
+The hackathon criteria ask how each Kiro feature was used. Honest accounting, by feature:
+
+### Spec-driven development — the load-bearing one
+
+Everything in the working branch traces back to a structured spec at [`.kiro/specs/ai-escape-room/`](./.kiro/specs/ai-escape-room/). Three files, each with a distinct job:
+
+- **`requirements.md`** — 13 requirements in **EARS notation** (Easy Approach to Requirements Syntax), each with an explicit user story and machine-readable acceptance criteria. Every "SHALL" is a testable claim.
+- **`design.md`** — architecture (Vite + React + R3F + Zustand + `@elevenlabs/client`) plus **17 numbered correctness properties** that bridge prose requirements to verifiable invariants. Example: *"Property 14: Final choice routing correctness — for all 4 combinations of (PlayerChoice × PartnerChoice), route to exactly the correct ending per the 2×2 matrix."*
+- **`tasks.md`** — 23 task sections with sub-tasks, each annotated with the requirement numbers it validates.
+
+The chain of custody is: `user story → EARS requirement → correctness property → task → implementation → property test`. This is why a 10-minute playthrough that spans live voice, 3D, state management, and a 2×2 game-theory ending could actually be shipped in a hackathon window — the ending branches, trust arithmetic, and puzzle-gating rules aren't vibe-coded, they're derived from properties and the tests assert those properties directly (`fast-check`, ≥100 iterations per property).
+
+**How this compared to vibe coding:** the stateful game logic (trust index, ending routing, door gating, scripted voice triggers) lives under the spec. Everything *visual* — scene composition, god rays, camera wake-up animation, dust particles, door hinges — was built by vibe coding. The split is deliberate: **specs for things that have to be correct, vibes for things that have to feel right.** Spec-driven work had a slower intake but near-zero rework; vibe-coded work was fast per-iteration but often needed 5–10 rounds before it landed. Picking the right mode per surface was the single biggest productivity lever.
+
+See [How it uses Kiro](#how-it-uses-kiro) below for the full spec dissection.
+
+### Vibe coding — scene, camera, and feel
+
+Conversations with Kiro for the visual layer followed a consistent pattern: **state the goal in one sentence, iterate tight loops, attach screenshots when a render disagreed with my words.** The highest-leverage prompts were the ones that fed Kiro world-space constraints up front ("rooms are 14m apart, floor at `y=-2`, catwalk doorway is `1.4×` standard height at `z=38`") so it could write coordinates directly into scene data instead of guessing.
+
+**Most impressive single generation:** the two-stage camera wake-up animation in [`static/src/components/IntroCamera.tsx`](./static/src/components/IntroCamera.tsx). One prompt produced a `useFrame`-driven two-stage pose interpolation (lying-on-side → elbow-up → standing) with `easeOutCubic`, an overlaid lateral sway that decays with progress, `YXZ` Euler order for correct roll-then-pitch composition, and a `useLayoutEffect` that pins the lying pose on first paint so the Canvas never flashes the default `(0, 0, 2)` origin. That's several distinct R3F timing gotchas solved in one shot.
+
+**Close runner-up:** the volumetric god-ray box with a fresnel-style GLSL shader — survived ~8 rejected iterations (crossed planes showing an "X", billboard rotating with the camera, wrong fade direction, visible circle on the floor) without losing context across the thread. That kind of stamina is where vibe coding shines.
+
+### Agent hooks
+
+Not leveraged in this project. The feedback loop here is a browser dev server and hand-driven playthroughs — the signals that matter (does the god ray look right, does the AI give a useful clue, does the final cutscene land) aren't shell-automatable. A `tsc --noEmit` hook on save of `src/**` is the obvious next addition if this went past the hackathon.
+
+### Steering docs
+
+Not leveraged as Kiro steering files. The nearest equivalent is [`GAME_DESIGN.md`](./GAME_DESIGN.md) — a single long document stating the genre, tone, trust-system contract, and ending matrix, kept open in every conversation so the agent always had the anchoring context. Same function as steering, different mechanism. The strategy that made the biggest difference was **keeping the trust-and-endings contract paraphrased in-thread** any time the conversation drifted toward scripted-voice or final-cutscene work.
+
+### MCP
+
+Not used. The project's external integration is ElevenLabs ConvAI (WebSocket SDK, not MCP), and the hackathon window did not leave time to stand up an MCP server. Candid: a Three.js / R3F docs MCP would have replaced a chunk of the god-ray trial-and-error.
+
+### Kiro powers
+
+The spec-driven workflow above is the headline power leveraged. Test-generation capability is what makes a 17-property correctness list cheap to enforce — property tests were written alongside the implementation, not after, so any regression in the 2×2 ending matrix fails the suite immediately. No third-party tooling was added specifically for Kiro integration.
+
 ## Table of contents
 
+- [How Kiro built this](#how-kiro-built-this)
 - [Elevator pitch](#elevator-pitch)
 - [Running locally](#running-locally)
 - [How it uses ElevenLabs](#how-it-uses-elevenlabs)
