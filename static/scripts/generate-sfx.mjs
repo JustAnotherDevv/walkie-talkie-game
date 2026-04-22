@@ -25,7 +25,7 @@ const SFX_PROMPTS = {
   DoorUnlock: { text: 'A heavy industrial bolt retracting, metallic clack, short reverb', duration_seconds: 1.2 },
   RadioStaticStart: { text: 'Short burst of walkie-talkie squelch, rising, ends in a soft hiss', duration_seconds: 0.7 },
   RadioStaticEnd: { text: 'Short burst of walkie-talkie squelch, falling, ends in a soft cut', duration_seconds: 0.7 },
-  ObjectInteract: { text: 'Tactile interaction click, a small metal switch being flicked, muted', duration_seconds: 0.4 },
+  ObjectInteract: { text: 'Tactile interaction click, a small metal switch being flicked, muted', duration_seconds: 0.5 },
   CooperateButtonClick: { text: 'Warm rounded confirm click, like pressing a large industrial button', duration_seconds: 0.5 },
   DefectButtonClick: { text: 'Cold sharp confirm click, a solenoid, like pressing a red industrial button', duration_seconds: 0.5 },
   LockedDoorThud: { text: 'A heavy locked door being pushed and rebounding, dull thud', duration_seconds: 1.0 },

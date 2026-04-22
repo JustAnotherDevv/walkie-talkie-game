@@ -8,6 +8,9 @@ import { EndingType } from '../types/endings';
  * Round 4 adds reveal-panel state, solved-puzzle tracking, and an
  * interaction-prompt string the HUD reads.
  */
+export type LightingMode = 'normal' | 'dim' | 'cut';
+export type DoorsMode = 'gated' | 'all-open' | 'all-sealed';
+
 export interface GameState {
   hasStarted: boolean;
   currentBeat: NarrativeBeat;
@@ -27,6 +30,14 @@ export interface GameState {
   /** Puzzle id associated with the currently-open reveal panel. */
   activePuzzleId: string | null;
 
+  /** Ending-driven scene state. */
+  lightingMode: LightingMode;
+  doorsMode: DoorsMode;
+
+  /** Room-0 keycard + door mechanic — gates door 0 instead of puzzle_01. */
+  hasKeycard: boolean;
+  door0Opened: boolean;
+
   // Actions
   startGame: () => void;
   advanceBeat: () => void;
@@ -40,6 +51,10 @@ export interface GameState {
   setPartnerFinalChoice: (choice: FinalChoice) => void;
   resolveEnding: () => void;
   resetGame: () => void;
+  setLightingMode: (mode: LightingMode) => void;
+  setDoorsMode: (mode: DoorsMode) => void;
+  pickUpKeycard: () => void;
+  openDoor0WithKeycard: () => boolean;
 }
 
 const initialState = {
@@ -56,6 +71,10 @@ const initialState = {
   interactionPrompt: null as string | null,
   revealedContent: null as string | null,
   activePuzzleId: null as string | null,
+  lightingMode: 'normal' as LightingMode,
+  doorsMode: 'gated' as DoorsMode,
+  hasKeycard: false,
+  door0Opened: false,
 };
 
 export const useGameStateStore = create<GameState>((set, get) => ({
@@ -85,7 +104,17 @@ export const useGameStateStore = create<GameState>((set, get) => ({
     }),
 
   triggerMidGameReveal: () =>
-    set((s) => (s.midGameRevealTriggered ? s : { midGameRevealTriggered: true })),
+    set((s) => {
+      if (s.midGameRevealTriggered) return s;
+      // If we're sitting in Midpoint (no puzzles to gate it), the reveal is
+      // the trigger that bridges us into Climb.
+      const shouldAdvance = s.currentBeat === NarrativeBeat.Midpoint;
+      const advancedBeat = shouldAdvance ? NarrativeBeat.Climb : s.currentBeat;
+      return {
+        midGameRevealTriggered: true,
+        currentBeat: advancedBeat,
+      };
+    }),
 
   setInteractionPrompt: (prompt) => {
     // Skip the write if unchanged — playerController polls this every frame.
@@ -123,4 +152,15 @@ export const useGameStateStore = create<GameState>((set, get) => ({
       ...initialState,
       solvedPuzzles: new Set<string>(),
     }),
+
+  setLightingMode: (mode) => set({ lightingMode: mode }),
+  setDoorsMode: (mode) => set({ doorsMode: mode }),
+
+  pickUpKeycard: () => set({ hasKeycard: true }),
+  openDoor0WithKeycard: () => {
+    if (!get().hasKeycard) return false;
+    if (get().door0Opened) return true;
+    set({ door0Opened: true });
+    return true;
+  },
 }));

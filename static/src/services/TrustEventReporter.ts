@@ -24,11 +24,17 @@ export function getTrustImpact(type: TrustEventType): number {
 }
 
 /**
- * Small standalone reporter. Holds history in-process. No side effects.
- * We'll route it through the ElevenLabs service in a later round.
+ * Small standalone reporter. Holds history in-process. An optional
+ * onReport callback lets ElevenLabsService forward every event into the
+ * live ConvAI agent context as [TRUST_EVENT] ... via sendContextualUpdate.
  */
 export class TrustEventReporter {
   private events: TrustEvent[] = [];
+  private onReportCb: ((event: TrustEvent, formatted: string) => void) | null = null;
+
+  setOnReport(cb: ((event: TrustEvent, formatted: string) => void) | null): void {
+    this.onReportCb = cb;
+  }
 
   reportEvent(type: TrustEventType, detail: string, puzzleId?: string): TrustEvent {
     const event: TrustEvent = {
@@ -38,6 +44,11 @@ export class TrustEventReporter {
       puzzleId,
     };
     this.events.push(event);
+    const impact = getTrustImpact(type);
+    const formatted =
+      `[TRUST_EVENT] type=${type} | impact=${impact > 0 ? '+' : ''}${impact} | detail=${detail}` +
+      (puzzleId ? ` | puzzle=${puzzleId}` : '');
+    this.onReportCb?.(event, formatted);
     return event;
   }
 

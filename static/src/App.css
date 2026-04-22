@@ -1,3 +1,188 @@
+/* Main menu — full-screen, no 3D scene behind it. */
+.main-menu {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, #0b1220 0%, #000 70%);
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.main-menu::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.015) 0px,
+      rgba(255, 255, 255, 0.015) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.main-menu-title {
+  font-size: clamp(48px, 8vw, 108px);
+  letter-spacing: 0.45em;
+  font-weight: 700;
+  color: #f8fafc;
+  text-shadow:
+    0 0 30px rgba(59, 130, 246, 0.25),
+    0 0 60px rgba(14, 165, 130, 0.12);
+  padding-left: 0.45em;
+  margin-bottom: 4px;
+  animation: title-flicker 6s infinite steps(1, end);
+}
+
+@keyframes title-flicker {
+  0%, 94%, 96%, 98%, 100% { opacity: 1; }
+  95%, 97% { opacity: 0.7; }
+}
+
+.main-menu-sub {
+  font-size: 13px;
+  letter-spacing: 0.4em;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+}
+
+.main-menu-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.main-menu-btn {
+  font-family: inherit;
+  font-size: 15px;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  padding: 16px 56px;
+  background: transparent;
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 180ms ease;
+  padding-left: calc(56px + 0.5em);
+}
+
+.main-menu-btn:hover,
+.main-menu-btn:focus-visible {
+  border-color: #3b82f6;
+  color: #f8fafc;
+  background: rgba(59, 130, 246, 0.08);
+  outline: none;
+  letter-spacing: 0.55em;
+}
+
+.main-menu-controls {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 28px;
+  font-size: 11px;
+  color: #475569;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.main-menu-controls kbd {
+  display: inline-block;
+  min-width: 16px;
+  padding: 2px 6px;
+  margin-right: 8px;
+  border: 1px solid #334155;
+  border-radius: 3px;
+  background: rgba(15, 23, 42, 0.6);
+  color: #94a3b8;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  text-align: center;
+}
+
+/* Mobile / unsupported-device splash. */
+.mobile-notice {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, #0b1220 0%, #000 70%);
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px;
+  gap: 18px;
+}
+
+.mobile-notice .mobile-title {
+  font-size: clamp(34px, 9vw, 64px);
+  letter-spacing: 0.4em;
+  font-weight: 700;
+  color: #f8fafc;
+  padding-left: 0.4em;
+}
+
+.mobile-notice .mobile-sub {
+  font-size: clamp(12px, 3.5vw, 15px);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.mobile-notice .mobile-body {
+  max-width: 420px;
+  font-size: clamp(13px, 3.8vw, 15px);
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+/* Minimal loading screen between Play and game start. */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.4em;
+  text-transform: lowercase;
+}
+
+.loading-dots {
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.loading-dots span {
+  display: inline-block;
+  opacity: 0.2;
+  animation: loading-dot 1.2s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes loading-dot {
+  0%, 70%, 100% { opacity: 0.2; }
+  35% { opacity: 1; }
+}
+
 .shell {
   position: fixed;
   inset: 0;
@@ -207,6 +392,61 @@ strong {
   text-transform: uppercase;
 }
 
+.mode-tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.mode-tag.live {
+  background: rgba(14, 165, 130, 0.2);
+  border: 1px solid #10b981;
+  color: #6ee7b7;
+}
+
+.mode-tag.mock {
+  background: rgba(148, 163, 184, 0.15);
+  border: 1px solid #64748b;
+  color: #94a3b8;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+  max-width: 420px;
+  line-height: 1.5;
+}
+
+.hint-text code {
+  background: rgba(30, 41, 59, 0.8);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+/* Small circle crosshair at screen center. */
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  z-index: 2;
+}
+
 /* Bottom-centre "[E] Examine the glyph" prompt while near a prop. */
 .interaction-prompt {
   position: absolute;
@@ -307,4 +547,184 @@ strong {
 .reveal-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+/* PTT / partner-speaking indicator */
+.ptt-indicator {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  background: rgba(127, 29, 29, 0.9);
+  border: 1px solid #ef4444;
+  border-radius: 999px;
+  color: #fecaca;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 3;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ptt-indicator.partner {
+  background: rgba(15, 118, 110, 0.9);
+  border-color: #14b8a6;
+  color: #ccfbf1;
+}
+
+.ptt-indicator .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ptt-pulse 1s infinite ease-in-out;
+}
+
+.ptt-indicator kbd {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+@keyframes ptt-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.ptt-meter {
+  width: 140px;
+  height: 8px;
+  background: rgba(127, 29, 29, 0.4);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-left: 12px;
+}
+
+.ptt-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f97316, #ef4444, #fbbf24);
+  transition: width 30ms linear;
+}
+
+.mic-pill {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.mic-granted { color: #4ade80; }
+.mic-denied { color: #f87171; }
+.mic-prompt { color: #fbbf24; }
+.mic-unknown { color: #94a3b8; }
+
+/* Ending screen — one look per outcome. */
+.ending-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  gap: 18px;
+  pointer-events: auto;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #e5e7eb;
+}
+
+.ending-release  { background: radial-gradient(circle at center, #0b1a1d 0%, #050505 100%); color: #ccfbf1; }
+.ending-cold     { background: radial-gradient(circle at center, #0b0b1a 0%, #000    100%); color: #e5e7eb; }
+.ending-warm     { background: radial-gradient(circle at center, #1a0f0b 0%, #050505 100%); color: #fde8d1; }
+.ending-reset    { background: #000; color: #f87171; }
+
+.ending-title {
+  font-size: 72px;
+  letter-spacing: 0.5em;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.ending-subtitle {
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.ending-flavor {
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.7;
+  opacity: 0.95;
+}
+
+.ending-meta {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+
+/* Caption overlay: what the AI partner is saying, bottom of screen. */
+.caption-overlay {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  padding: 14px 22px;
+  max-width: 72%;
+  background: rgba(8, 12, 20, 0.86);
+  border: 1px solid rgba(20, 184, 166, 0.45);
+  border-radius: 8px;
+  color: #e0f2fe;
+  font-size: 16px;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  text-align: center;
+  z-index: 4;
+  pointer-events: none;
+  animation: caption-in 200ms ease-out;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes caption-in {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.live-error {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  background: rgba(127, 29, 29, 0.95);
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #fee2e2;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 100;
+  max-width: 80%;
+  text-align: center;
 }

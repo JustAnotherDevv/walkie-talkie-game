@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useGameStateStore } from '../stores/gameStateStore';
-import { checkSolution, getPuzzle } from '../puzzles/puzzleInstances';
+import {
+  allBeatPuzzlesSolved,
+  checkSolution,
+  getPuzzle,
+} from '../puzzles/puzzleInstances';
+import { getTrustEventReporter } from '../services/TrustEventReporter';
+import { TrustEventType } from '../types/trust';
 
 /**
  * Modal-ish overlay that opens when the player interacts with a prop.
@@ -13,6 +19,8 @@ export function RevealPanel() {
   const closeReveal = useGameStateStore((s) => s.closeReveal);
   const markPuzzleSolved = useGameStateStore((s) => s.markPuzzleSolved);
   const solvedPuzzles = useGameStateStore((s) => s.solvedPuzzles);
+  const currentBeat = useGameStateStore((s) => s.currentBeat);
+  const advanceBeat = useGameStateStore((s) => s.advanceBeat);
 
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState<'idle' | 'correct' | 'wrong'>('idle');
@@ -40,10 +48,30 @@ export function RevealPanel() {
     const ok = checkSolution(activePuzzleId, input);
     setFeedback(ok ? 'correct' : 'wrong');
     if (ok) {
+      const solvedPuzzle = getPuzzle(activePuzzleId);
       markPuzzleSolved(activePuzzleId);
-      setTimeout(() => {
-        closeReveal();
-      }, 700);
+
+      // Solving a defection-opportunity puzzle means the Player chose to
+      // share truthful info they could have lied about. Fire an automatic
+      // SharedRiskyInfo trust event so the partner's trust model actually
+      // updates on game events (not only manual demo buttons).
+      if (solvedPuzzle?.isDefectionOpportunity) {
+        getTrustEventReporter().reportEvent(
+          TrustEventType.SharedRiskyInfo,
+          `Player truthfully solved defection-opportunity puzzle ${activePuzzleId}`,
+          activePuzzleId,
+        );
+      }
+
+      // Auto-advance the beat if the newly solved puzzle completes the
+      // beat's puzzle set.
+      const nextSolved = new Set(solvedPuzzles);
+      nextSolved.add(activePuzzleId);
+      if (allBeatPuzzlesSolved(currentBeat, nextSolved)) {
+        advanceBeat();
+      }
+
+      setTimeout(() => closeReveal(), 700);
     } else {
       setTimeout(() => setFeedback('idle'), 1200);
     }

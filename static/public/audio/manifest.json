@@ -1,37 +1,37 @@
 {
   "partnerVoiceId": "partner-voice-id-placeholder",
   "ttsLines": {
-    "opening_monologue": "/audio/tts/opening_monologue.wav",
-    "intercom_announcement_1": "/audio/tts/intercom_announcement_1.wav",
-    "intercom_announcement_2": "/audio/tts/intercom_announcement_2.wav",
-    "ending_release": "/audio/tts/ending_release.wav",
-    "ending_left_behind": "/audio/tts/ending_left_behind.wav",
-    "ending_alone": "/audio/tts/ending_alone.wav",
-    "ending_reset": "/audio/tts/ending_reset.wav"
+    "opening_monologue": "/audio/tts/opening_monologue.mp3",
+    "intercom_announcement_1": "/audio/tts/intercom_announcement_1.mp3",
+    "intercom_announcement_2": "/audio/tts/intercom_announcement_2.mp3",
+    "ending_release": "/audio/tts/ending_release.mp3",
+    "ending_left_behind": "/audio/tts/ending_left_behind.mp3",
+    "ending_alone": "/audio/tts/ending_alone.mp3",
+    "ending_reset": "/audio/tts/ending_reset.mp3"
   },
   "sfxClips": {
-    "DoorLock": "/audio/sfx/door_lock.wav",
-    "DoorUnlock": "/audio/sfx/door_unlock.wav",
-    "RadioStaticStart": "/audio/sfx/radio_static_start.wav",
-    "RadioStaticEnd": "/audio/sfx/radio_static_end.wav",
-    "ObjectInteract": "/audio/sfx/object_interact.wav",
-    "CooperateButtonClick": "/audio/sfx/cooperate_button_click.wav",
-    "DefectButtonClick": "/audio/sfx/defect_button_click.wav",
-    "LockedDoorThud": "/audio/sfx/locked_door_thud.wav",
-    "SignalLost": "/audio/sfx/signal_lost.wav",
-    "StaticBurst": "/audio/sfx/static_burst.wav"
+    "DoorLock": "/audio/sfx/DoorLock.mp3",
+    "DoorUnlock": "/audio/sfx/DoorUnlock.mp3",
+    "RadioStaticStart": "/audio/sfx/RadioStaticStart.mp3",
+    "RadioStaticEnd": "/audio/sfx/RadioStaticEnd.mp3",
+    "ObjectInteract": "/audio/sfx/ObjectInteract.mp3",
+    "CooperateButtonClick": "/audio/sfx/CooperateButtonClick.mp3",
+    "DefectButtonClick": "/audio/sfx/DefectButtonClick.mp3",
+    "LockedDoorThud": "/audio/sfx/LockedDoorThud.mp3",
+    "SignalLost": "/audio/sfx/SignalLost.mp3",
+    "StaticBurst": "/audio/sfx/StaticBurst.mp3"
   },
   "musicTracks": {
-    "Opening": "/audio/music/opening.wav",
-    "Rising": "/audio/music/rising.wav",
-    "Midpoint": "/audio/music/midpoint.wav",
-    "Climb": "/audio/music/climb.wav",
-    "Climax": "/audio/music/climax.wav"
+    "Opening": "/audio/music/opening.mp3",
+    "Rising": "/audio/music/rising.mp3",
+    "Midpoint": "/audio/music/midpoint.mp3",
+    "Climb": "/audio/music/climb.mp3",
+    "Climax": "/audio/music/climax.mp3"
   },
   "endingStings": {
-    "Release": "/audio/music/ending_release_sting.wav",
-    "LeftBehind": "/audio/music/ending_left_behind_sting.wav",
-    "Alone": "/audio/music/ending_alone_sting.wav",
-    "Reset": "/audio/music/ending_reset_sting.wav"
+    "Release": "/audio/music/ending_release_sting.mp3",
+    "LeftBehind": "/audio/music/ending_leftbehind_sting.mp3",
+    "Alone": "/audio/music/ending_alone_sting.mp3",
+    "Reset": "/audio/music/ending_reset_sting.mp3"
   }
 }
